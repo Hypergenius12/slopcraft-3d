@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxel Odyssey — Infinite Worlds</title>
+    <meta name="description" content="Explore infinite procedurally generated planets with dungeons, magic wands, and epic bossfights.">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/geometric.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧱</text></svg>">
+</head>
+<body>
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <div class="start-content">
+            <h1 class="game-title">
+                <span class="title-voxel">VOXEL</span>
+                <span class="title-voxel" style="color:var(--text); margin-left:10px;">ODYSSEY</span>
+            </h1>
+            <p class="subtitle">Infinite Worlds · Dungeons · Magic</p>
+            <div class="start-actions">
+                <button id="btn-new-game" class="menu-btn primary">New Game</button>
+            </div>
+            <p class="start-hint">Click to lock mouse · WASD to move · Space to jump</p>
+        </div>
+    </div>
+
+    <!-- Pause Menu -->
+    <div id="pause-screen" class="hidden">
+        <div class="start-content">
+            <h1 class="game-title" style="font-size: 3rem;">Paused</h1>
+            <div class="start-actions" style="margin-top: 2rem;">
+                <button id="btn-resume" class="menu-btn primary">Resume</button>
+                <div style="margin: 20px 0; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                    <label style="display: block; color: white; margin-bottom: 10px; font-family: 'Outfit';">Render Distance: <span id="render-distance-val">8</span></label>
+                    <input type="range" id="render-distance-slider" min="2" max="16" value="8" style="width: 100%; cursor: pointer;">
+                </div>
+                <button id="btn-quit" class="menu-btn">Quit to Title</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Geometric UI overlay -->
+    <div id="geometric-ui" class="hidden">
+        <div class="inv-wrapper">
+            <!-- Equipment column -->
+            <div class="equipment-col">
+                <div class="inv-slot armor-slot" data-slot="head"></div>
+                <div class="inv-slot armor-slot" data-slot="chest"></div>
+                <div class="inv-slot armor-slot" data-slot="legs"></div>
+                <div class="inv-slot armor-slot" data-slot="boots"></div>
+                <div style="height: 20px;"></div>
+                <div class="inv-slot offhand-slot" data-slot="offhand"></div>
+            </div>
+            
+            <div class="main-inv-col">
+                <!-- Main grid (3 rows of 9) -->
+                <div class="main-grid" id="main-inventory-grid">
+                    <!-- Filled by JS -->
+                </div>
+                
+                <div style="height: 20px;"></div>
+                
+                <!-- Inventory separated hotbar -->
+                <div class="main-grid" id="inv-hotbar-grid" style="grid-template-rows: 60px;">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+
+            <!-- Wand Configurator -->
+            <div class="wand-config-col hidden" id="wand-config-panel">
+                <div style="color: white; font-weight: bold; margin-bottom: 10px; font-size: 1.2rem;" id="wand-config-title">Wand Configuration</div>
+                <div class="wand-slots-grid" id="wand-slots-grid" style="display: grid; grid-template-columns: repeat(2, 60px); gap: 10px;">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Item Tooltip -->
+    <div id="item-tooltip" class="hidden"></div>
+    
+    <!-- Dragging Item Icon -->
+    <div id="drag-item-icon" class="hidden"></div>
+
+    <!-- Always visible geometric hotbar -->
+    <div id="geometric-hotbar">
+        <div class="hotbar-grid" id="main-hotbar-grid">
+            <!-- Filled by JS -->
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+    }
+    </script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

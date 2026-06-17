@@ -1,0 +1,255 @@
+/* Geometric UI System */
+#geometric-ui {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#geometric-ui.hidden {
+    display: none;
+}
+
+.inv-wrapper {
+    display: flex;
+    gap: 20px;
+    background: rgba(10, 10, 15, 0.9);
+    padding: 30px;
+    border: 2px solid #333;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
+
+.equipment-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.main-grid, .hotbar-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 50px);
+    grid-template-rows: repeat(3, 50px);
+    gap: 5px;
+}
+
+.hotbar-grid {
+    grid-template-rows: 50px;
+}
+
+#geometric-hotbar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 10, 15, 0.8);
+    padding: 10px;
+    border: 2px solid #333;
+    z-index: 500;
+}
+
+.inv-slot {
+    width: 50px;
+    height: 50px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid #444;
+    position: relative;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.inv-slot:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: #7c5cff;
+}
+
+.inv-slot.active {
+    border: 2px solid #7c5cff;
+    background: rgba(124, 92, 255, 0.2);
+}
+
+.armor-slot::after {
+    content: attr(data-slot);
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(255,255,255,0.2);
+    font-size: 10px;
+    pointer-events: none;
+    text-transform: uppercase;
+}
+
+.item-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.item-count {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    color: white;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    text-shadow: 1px 1px 0 #000;
+}
+
+#pause-screen {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+#pause-screen.hidden {
+    display: none;
+}
+
+#drag-item-icon {
+    position: fixed;
+    pointer-events: none;
+    z-index: 3000;
+    width: 50px; height: 50px;
+    transform: translate(-50%, -50%);
+}
+
+#drag-item-icon.hidden {
+    display: none;
+}
+
+#item-tooltip {
+    position: fixed;
+    pointer-events: none;
+    z-index: 2500;
+    background: rgba(10, 10, 15, 0.95);
+    border: 1px solid #7c5cff;
+    padding: 10px;
+    color: white;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    max-width: 250px;
+}
+
+#item-tooltip.hidden {
+    display: none;
+}
+
+.wand-config-col {
+    display: flex;
+    flex-direction: column;
+    padding-left: 20px;
+    border-left: 1px solid #444;
+}
+
+.wand-config-col.hidden {
+    display: none;
+}
+
+.wand-slots-grid .inv-slot {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(124, 92, 255, 0.1);
+    border: 2px solid #7c5cff;
+}
+
+/* ============================================
+   Crosshair
+   ============================================ */
+#crosshair {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 50;
+    pointer-events: none;
+}
+.ch { position: absolute; background: rgba(255,255,255,0.8); }
+.ch-h { width: 20px; height: 2px; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.ch-v { width: 2px; height: 20px; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.ch-dot { width: 4px; height: 4px; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255,255,255,0.9); }
+
+/* ============================================
+   Damage Flash
+   ============================================ */
+#damage-flash {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: radial-gradient(ellipse at center, transparent 30%, rgba(255, 0, 0, 0.4) 100%);
+    z-index: 40;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+#damage-flash.active {
+    opacity: 1;
+}
+
+/* ============================================
+   Health / Mana Bars
+   ============================================ */
+.bar-container {
+    position: fixed;
+    left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 50;
+    pointer-events: none;
+}
+#health-container { bottom: 80px; }
+#mana-container { bottom: 56px; }
+
+.bar-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+#health-container .bar-icon { color: #ff4466; }
+#mana-container .bar-icon { color: #66aaff; }
+
+.bar-track {
+    width: 160px;
+    height: 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.2s ease;
+}
+.health-fill {
+    background: linear-gradient(90deg, #ff2244, #ff6677);
+    box-shadow: 0 0 6px rgba(255, 34, 68, 0.4);
+}
+.mana-fill {
+    background: linear-gradient(90deg, #4466ff, #88aaff);
+    box-shadow: 0 0 6px rgba(68, 102, 255, 0.4);
+}
+.bar-text {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: rgba(255,255,255,0.6);
+    min-width: 55px;
+}
+
+/* ============================================
+   Debug Info
+   ============================================ */
+#debug-info {
+    position: fixed;
+    top: 8px; left: 8px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: rgba(255,255,255,0.4);
+    z-index: 50;
+    pointer-events: none;
+}
