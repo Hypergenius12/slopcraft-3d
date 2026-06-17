@@ -35,7 +35,7 @@ export class PlanetParams {
 
         // Aesthetics
         // Pick a realistic, vibrant daytime sky blue color
-        const skyBlues = ['#87ceeb', '#4682b4', '#00bfff', '#add8e6', '#88ccee'];
+        const skyBlues = ['#78A7FF', '#87CEEB', '#88CCEE', '#66B2FF', '#99CCFF'];
         this.skyColor = skyBlues[Math.floor(rng() * skyBlues.length)];
         // Use a much lower fog density so the world looks clearer and less eerie
         this.fogDensity = 0.003 + (rng() * 0.003);

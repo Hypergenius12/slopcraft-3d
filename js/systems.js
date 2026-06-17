@@ -78,8 +78,8 @@ export class LightingSystem {
             // Sunrise - pink/orange horizon, light blue top
             { t: 0.25, amb: new THREE.Color(0x8a6b52), bg: new THREE.Color(0xffa65a), top: new THREE.Color(0x82a6ff), sun: 0.8, hemi: 0.8 },
             // Day - bright Minecraft blue, high ambient light for soft shadows
-            { t: 0.3, amb: new THREE.Color(0xdddddd), bg: new THREE.Color(0xaadcff), top: new THREE.Color(0x78a7ff), sun: 1.5, hemi: 1.2 },
-            { t: 0.7, amb: new THREE.Color(0xdddddd), bg: new THREE.Color(0xaadcff), top: new THREE.Color(0x78a7ff), sun: 1.5, hemi: 1.2 },
+            { t: 0.3, amb: new THREE.Color(0xdddddd), bg: new THREE.Color(0xcceeff), top: new THREE.Color(0x88ccff), sun: 1.5, hemi: 1.2 },
+            { t: 0.7, amb: new THREE.Color(0xdddddd), bg: new THREE.Color(0xcceeff), top: new THREE.Color(0x88ccff), sun: 1.5, hemi: 1.2 },
             // Sunset - orange/red horizon
             { t: 0.75, amb: new THREE.Color(0x8a5050), bg: new THREE.Color(0xff5a5a), top: new THREE.Color(0x5a82f2), sun: 0.8, hemi: 0.8 },
             // Night
