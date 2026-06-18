@@ -383,14 +383,12 @@ class Game {
         if (!document.getElementById('minimap-overlay')) {
             const mmo = document.createElement('div');
             mmo.id = 'minimap-overlay';
-            mmo.style.cssText = 'position: absolute; top: 20px; right: 20px; width: 200px; height: 200px; pointer-events: none; z-index: 100; font-family: Outfit, sans-serif; border: 4px solid #5a3a22; border-radius: 50%; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.8); background: radial-gradient(circle, transparent 40%, rgba(90, 58, 34, 0.4) 100%);';
+            mmo.style.cssText = 'position: absolute; top: 20px; right: 20px; width: 200px; height: 200px; pointer-events: none; z-index: 100; font-family: Outfit, sans-serif; border: 4px solid black; box-shadow: 0 0 15px rgba(0,0,0,0.8);';
             mmo.innerHTML = `
-                <!-- This covers the square canvas corners if needed, but actually since we add border-radius to mmo, we can just mask it! Wait, mmo is on top, not a mask. -->
-                <div style="position: absolute; top: -4px; left: -4px; right: -4px; bottom: -4px; border-radius: 50%; box-shadow: 0 0 0 100px #222; pointer-events: none;"></div>
-                <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); color: #ffaa55; font-weight: bold; text-shadow: 1px 1px 2px #000; font-size: 14px;">N</div>
-                <div style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); color: #ffaa55; font-weight: bold; text-shadow: 1px 1px 2px #000; font-size: 14px;">S</div>
-                <div style="position: absolute; top: 50%; left: 8px; transform: translateY(-50%); color: #ffaa55; font-weight: bold; text-shadow: 1px 1px 2px #000; font-size: 14px;">W</div>
-                <div style="position: absolute; top: 50%; right: 8px; transform: translateY(-50%); color: #ffaa55; font-weight: bold; text-shadow: 1px 1px 2px #000; font-size: 14px;">E</div>
+                <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; text-shadow: 1px 1px 2px #000; font-size: 14px;">N</div>
+                <div style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; text-shadow: 1px 1px 2px #000; font-size: 14px;">S</div>
+                <div style="position: absolute; top: 50%; left: 8px; transform: translateY(-50%); color: white; font-weight: bold; text-shadow: 1px 1px 2px #000; font-size: 14px;">W</div>
+                <div style="position: absolute; top: 50%; right: 8px; transform: translateY(-50%); color: white; font-weight: bold; text-shadow: 1px 1px 2px #000; font-size: 14px;">E</div>
                 <div id="minimap-player-arrow" style="position: absolute; top: 50%; left: 50%; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 16px solid #ff3333; transform-origin: 50% 50%; margin-left: -6px; margin-top: -8px; filter: drop-shadow(0 0 3px black);"></div>
             `;
             document.body.appendChild(mmo);
