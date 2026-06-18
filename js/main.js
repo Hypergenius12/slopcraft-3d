@@ -127,7 +127,8 @@ class Game {
 
         // Minimap Camera
         const d = 40; // minimap view half-size in blocks
-        this.minimapCamera = new THREE.OrthographicCamera(-d, d, d, -d, 1, 1000);
+        // Reduce far plane to 160 so we don't render caves or distant geometry on minimap
+        this.minimapCamera = new THREE.OrthographicCamera(-d, d, d, -d, 1, 160);
         this.minimapCamera.position.set(0, 150, 0);
         this.minimapCamera.lookAt(0, 0, 0);
 
@@ -568,21 +569,24 @@ class Game {
         this.cloudSystem.update(dt, this.engine.camera.position);
         this.meteorSystem.update(dt, this.player.position);
         this.entityManager.update(dt, this.world, this.player.position, this.player.inventory, this.player);
+        const _tempVec3 = new THREE.Vector3();
+        
         this.projectileManager.update(dt, (proj) => {
             let hitFound = false;
-            let hitPos = proj.position.clone();
+            let hitPos = _tempVec3.copy(proj.position);
 
             // Check entities
-            const eHit = this.entityManager.raycast(proj.position, proj.velocity.clone().normalize(), dt * proj.stats.speed + 0.5);
+            _tempVec3.copy(proj.velocity).normalize();
+            const eHit = this.entityManager.raycast(proj.position, _tempVec3, dt * proj.stats.speed + 0.5);
             if (eHit.hit && eHit.mob) {
                 hitFound = true;
-                hitPos = eHit.mob.position.clone();
+                hitPos.copy(eHit.mob.position);
                 if (proj.stats.element === 'ICE') {
-                    eHit.mob.takeDamage(proj.stats.damage, proj.velocity.clone().normalize());
+                    eHit.mob.takeDamage(proj.stats.damage, _tempVec3);
                     eHit.mob.freeze(3.0); // 3 seconds freeze
                 } else if (proj.stats.element !== 'FIRE') {
                     // Normal hit
-                    eHit.mob.takeDamage(proj.stats.damage, proj.velocity.clone().normalize());
+                    eHit.mob.takeDamage(proj.stats.damage, _tempVec3);
                 }
             }
 

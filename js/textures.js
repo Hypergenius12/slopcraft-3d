@@ -1164,7 +1164,8 @@ export function createTextureAtlas() {
 
     function updateAnimatedTextures(time) {
         if (animatedFrames.length === 0) return;
-        const shift = Math.floor(time * 0.005) % TEX_SIZE;
+        // Slow down update rate to prevent constant GPU texture upload lag
+        const shift = Math.floor(time * 0.001) % TEX_SIZE;
         if (texture.userData.lastShift === shift) return;
         texture.userData.lastShift = shift;
 

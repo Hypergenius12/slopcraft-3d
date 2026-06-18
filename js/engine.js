@@ -171,7 +171,7 @@ export class GameEngine {
 
         // Shadows
         this._renderer.shadowMap.enabled = true;
-        this._renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this._renderer.shadowMap.type = THREE.PCFShadowMap;
 
         // Color management
         this._renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -422,7 +422,7 @@ export class Chunk {
         } else {
             this.mesh = new THREE.Mesh(geometry, materials);
             this.mesh.position.set(this.cx * CHUNK_SIZE, 0, this.cz * CHUNK_SIZE);
-            this.mesh.castShadow = true;
+            this.mesh.castShadow = false; // Massive performance gain: voxel terrain doesn't need to cast shadows on itself
             this.mesh.receiveShadow = true;
         }
         this.dirty = false;

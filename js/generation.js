@@ -379,10 +379,10 @@ function generateTree(blocks, x, y, z, biome, rng) {
     
     // Height generation
     let height = 4 + Math.floor(rng() * 3);
-    if (isJungle) height = 12 + Math.floor(rng() * 8);
-    else if (isPine) height = 7 + Math.floor(rng() * 5);
-    else if (isSavanna) height = 6 + Math.floor(rng() * 3);
-    else if (isCherry) height = 5 + Math.floor(rng() * 3);
+    if (isJungle) height = 7 + Math.floor(rng() * 4); // Scaled down jungle tree height
+    else if (isPine) height = 6 + Math.floor(rng() * 3);
+    else if (isSavanna) height = 5 + Math.floor(rng() * 2);
+    else if (isCherry) height = 5 + Math.floor(rng() * 2);
 
     // Trunk generation
     if (isJungle) {
@@ -433,9 +433,9 @@ function generateTree(blocks, x, y, z, biome, rng) {
         }
     }
     else if (isJungle) {
-        // Massive sprawling canopy
-        for (let ly = y + height - 4; ly <= y + height + 1; ly++) {
-            const radius = ly > y + height - 1 ? 3 : 5;
+        // Jungle canopy
+        for (let ly = y + height - 3; ly <= y + height + 1; ly++) {
+            const radius = ly > y + height - 1 ? 2 : 3; // Reduced from 5
             for (let lx = x - radius; lx <= x + radius + 1; lx++) {
                 for (let lz = z - radius; lz <= z + radius + 1; lz++) {
                     if (Math.abs(lx - x - 0.5) + Math.abs(lz - z - 0.5) > radius + 1) continue;
@@ -469,9 +469,9 @@ function generateTree(blocks, x, y, z, biome, rng) {
         }
     }
     else if (isCherry) {
-        // Wide, spherical canopy
+        // Spherical canopy
         for (let ly = y + height - 2; ly <= y + height + 2; ly++) {
-            const radius = ly === y + height ? 4 : (ly === y + height + 2 || ly === y + height - 2 ? 2 : 3);
+            const radius = ly === y + height ? 3 : (ly === y + height + 2 || ly === y + height - 2 ? 1 : 2); // Reduced from 4
             for (let lx = x - radius; lx <= x + radius; lx++) {
                 for (let lz = z - radius; lz <= z + radius; lz++) {
                     if (Math.abs(lx - x) === radius && Math.abs(lz - z) === radius && rng() < 0.7) continue;
