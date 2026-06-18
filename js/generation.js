@@ -793,7 +793,11 @@ function carveRoomInChunk(blocks, cx, cz, room) {
                 
                 if (room.type === 'door') {
                     if (wy >= minY && wy < minY + 3) {
-                        safeSetBlock(blocks, lx, wy, lz, BLOCKS.DUNGEON_DOOR);
+                        if (wx === room.x && wz === room.z && wy < minY + 2) {
+                            safeSetBlock(blocks, lx, wy, lz, BLOCKS.DUNGEON_DOOR);
+                        } else {
+                            safeSetBlock(blocks, lx, wy, lz, BLOCKS.STONE_BRICKS);
+                        }
                     }
                     continue;
                 }

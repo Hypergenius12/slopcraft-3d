@@ -211,6 +211,7 @@ export class Chunk {
         this.cx = cx;
         this.cz = cz;
         this.blocks = new Uint8Array(CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE);
+        this.data = new Uint8Array(CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE);
         this.mesh = null;
         this.dirty = false;
     }
@@ -224,6 +225,16 @@ export class Chunk {
         if (lx < 0 || lx >= CHUNK_SIZE || ly < 0 || ly >= CHUNK_HEIGHT || lz < 0 || lz >= CHUNK_SIZE) return;
         this.blocks[(ly * CHUNK_SIZE * CHUNK_SIZE) + (lz * CHUNK_SIZE) + lx] = type;
         this.dirty = true;
+    }
+
+    getData(lx, ly, lz) {
+        if (lx < 0 || lx >= CHUNK_SIZE || ly < 0 || ly >= CHUNK_HEIGHT || lz < 0 || lz >= CHUNK_SIZE) return 0;
+        return this.data[(ly * CHUNK_SIZE * CHUNK_SIZE) + (lz * CHUNK_SIZE) + lx];
+    }
+
+    setData(lx, ly, lz, dataValue) {
+        if (lx < 0 || lx >= CHUNK_SIZE || ly < 0 || ly >= CHUNK_HEIGHT || lz < 0 || lz >= CHUNK_SIZE) return;
+        this.data[(ly * CHUNK_SIZE * CHUNK_SIZE) + (lz * CHUNK_SIZE) + lx] = dataValue;
     }
 
     buildMesh(atlas, getNeighborBlock) {
@@ -535,6 +546,33 @@ export class World {
         return BLOCKS.AIR;
     }
 
+    getData(wx, wy, wz) {
+        wx = Math.floor(wx); wy = Math.floor(wy); wz = Math.floor(wz);
+        if (wy < 0 || wy >= CHUNK_HEIGHT) return 0;
+
+        const cx = Math.floor(wx / CHUNK_SIZE);
+        const cz = Math.floor(wz / CHUNK_SIZE);
+        const lx = ((wx % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+        const lz = ((wz % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+
+        const chunk = this.chunks.get(this.getChunkKey(cx, cz));
+        if (chunk) return chunk.getData(lx, wy, lz);
+        return 0;
+    }
+
+    setData(wx, wy, wz, dataValue) {
+        wx = Math.floor(wx); wy = Math.floor(wy); wz = Math.floor(wz);
+        if (wy < 0 || wy >= CHUNK_HEIGHT) return;
+
+        const cx = Math.floor(wx / CHUNK_SIZE);
+        const cz = Math.floor(wz / CHUNK_SIZE);
+        const lx = ((wx % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+        const lz = ((wz % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+
+        const chunk = this.chunks.get(this.getChunkKey(cx, cz));
+        if (chunk) chunk.setData(lx, wy, lz, dataValue);
+    }
+
     setBlock(wx, wy, wz, type) {
         wx = Math.floor(wx); wy = Math.floor(wy); wz = Math.floor(wz);
         if (wy < 0 || wy >= CHUNK_HEIGHT) return;
@@ -616,39 +654,57 @@ export class World {
 
             if (!props.isLiquid) continue;
 
+            const isWater = type === BLOCKS.WATER || type === BLOCKS.SWAMP_WATER;
+            const isLava = type === BLOCKS.LAVA;
+            const maxLevel = isLava ? 3 : 7;
+            
+            const data = this.getData(x, y, z);
+            const currentLevel = data === 0 ? maxLevel : data;
+
             const bBelow = this.getBlock(x, y - 1, z);
             const belowProps = getBlockProperties(bBelow);
 
             if (bBelow === BLOCKS.AIR) {
                 this.setBlock(x, y - 1, z, type);
+                this.setData(x, y - 1, z, maxLevel); // Falling resets to max level
             } else if (!belowProps.isLiquid) {
                 // Spread sideways if blocked below
-                const sides = [
-                    [1, 0], [-1, 0], [0, 1], [0, -1]
-                ];
-                for (const [dx, dz] of sides) {
-                    const sideBlock = this.getBlock(x + dx, y, z + dz);
-                    const sideProps = getBlockProperties(sideBlock);
+                if (currentLevel > 1) {
+                    const nextLevel = currentLevel - 1;
+                    const sides = [
+                        [1, 0], [-1, 0], [0, 1], [0, -1]
+                    ];
+                    for (const [dx, dz] of sides) {
+                        const sideBlock = this.getBlock(x + dx, y, z + dz);
+                        const sideProps = getBlockProperties(sideBlock);
 
-                    if (sideBlock === BLOCKS.AIR) {
-                        this.setBlock(x + dx, y, z + dz, type);
-                    } else if (sideProps.isLiquid && sideBlock !== type) {
-                        // Liquid mixing!
-                        const isWater = type === BLOCKS.WATER || type === BLOCKS.SWAMP_WATER;
-                        const isLava = type === BLOCKS.LAVA;
-                        const sideIsWater = sideBlock === BLOCKS.WATER || sideBlock === BLOCKS.SWAMP_WATER;
-                        const sideIsLava = sideBlock === BLOCKS.LAVA;
+                        if (sideBlock === BLOCKS.AIR || (sideProps.isCross || sideProps.isGrass)) {
+                            // Wash away small plants like grass/flowers when flowing
+                            this.setBlock(x + dx, y, z + dz, type);
+                            this.setData(x + dx, y, z + dz, nextLevel);
+                        } else if (sideProps.isLiquid && sideBlock !== type) {
+                            // Liquid mixing!
+                            const sideIsWater = sideBlock === BLOCKS.WATER || sideBlock === BLOCKS.SWAMP_WATER;
+                            const sideIsLava = sideBlock === BLOCKS.LAVA;
 
-                        if (isWater && sideIsLava) {
-                            this.setBlock(x + dx, y, z + dz, BLOCKS.OBSIDIAN);
-                        } else if (isLava && sideIsWater) {
-                            this.setBlock(x, y, z, BLOCKS.COBBLESTONE);
+                            if (isWater && sideIsLava) {
+                                this.setBlock(x + dx, y, z + dz, BLOCKS.OBSIDIAN);
+                            } else if (isLava && sideIsWater) {
+                                this.setBlock(x, y, z, BLOCKS.COBBLESTONE);
+                            }
+                        } else if (sideBlock === type) {
+                            // Update existing liquid if we can provide a higher level
+                            const sideData = this.getData(x + dx, y, z + dz);
+                            const sideLevel = sideData === 0 ? maxLevel : sideData;
+                            if (nextLevel > sideLevel) {
+                                this.setData(x + dx, y, z + dz, nextLevel);
+                                this.queueLiquidUpdate(x + dx, y, z + dz);
+                            }
                         }
                     }
                 }
             } else if (belowProps.isLiquid && bBelow !== type) {
                 // If water is above lava, turn lava into obsidian
-                const isWater = type === BLOCKS.WATER || type === BLOCKS.SWAMP_WATER;
                 if (isWater && bBelow === BLOCKS.LAVA) {
                     this.setBlock(x, y - 1, z, BLOCKS.OBSIDIAN);
                 }
@@ -749,6 +805,7 @@ export class World {
         for (const [key, chunk] of this.chunks.entries()) {
             if (!chunksToKeep.has(key)) {
                 chunk.dispose();
+                if (this.onChunkUnloaded) this.onChunkUnloaded(chunk.cx, chunk.cz);
                 this.chunks.delete(key);
                 // Remove from build queues
                 const index = this.chunksToBuild.indexOf(chunk);

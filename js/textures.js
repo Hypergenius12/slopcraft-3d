@@ -992,9 +992,10 @@ function generateBlockTexture(ctx, blockType, face, rng) {
         case BLOCKS.CHERRY_LEAVES:
             fillBase(ctx, 255, 180, 200);
             addNoise(ctx, rng, 20);
-            addPixels(ctx, rng, 'rgba(255, 140, 180, 0.8)', 40); // darker pink leaves
-            ctx.clearRect(rng() * 10, rng() * 10, 3, 3); // some transparency
-            ctx.clearRect(rng() * 10, rng() * 10, 2, 2);
+            addPixels(ctx, rng, 'rgba(255, 140, 180, 0.8)', 60); // darker pink leaves
+            for (let i = 0; i < 40; i++) {
+                ctx.clearRect((rng() * TEX_SIZE)|0, (rng() * TEX_SIZE)|0, 1, 1);
+            }
             break;
         case BLOCKS.PINK_PETALS:
             ctx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
@@ -1020,9 +1021,10 @@ function generateBlockTexture(ctx, blockType, face, rng) {
         case BLOCKS.AUTUMN_LEAVES:
             fillBase(ctx, 220, 100, 20);
             addNoise(ctx, rng, 20);
-            addPixels(ctx, rng, 'rgba(255, 150, 20, 0.8)', 40); // Yellow/orange leaves
-            ctx.clearRect(rng() * 10, rng() * 10, 3, 3);
-            ctx.clearRect(rng() * 10, rng() * 10, 2, 2);
+            addPixels(ctx, rng, 'rgba(255, 150, 20, 0.8)', 60); // Yellow/orange leaves
+            for (let i = 0; i < 40; i++) {
+                ctx.clearRect((rng() * TEX_SIZE)|0, (rng() * TEX_SIZE)|0, 1, 1);
+            }
             break;
         case BLOCKS.FALLEN_LEAVES:
             ctx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
@@ -1044,7 +1046,9 @@ function generateBlockTexture(ctx, blockType, face, rng) {
             fillBase(ctx, 10, 120, 120);
             addNoise(ctx, rng, 15);
             addPixels(ctx, rng, 'rgba(0, 255, 255, 0.8)', 50); // glowing spots
-            ctx.clearRect(rng() * 10, rng() * 10, 3, 3);
+            for (let i = 0; i < 40; i++) {
+                ctx.clearRect((rng() * TEX_SIZE)|0, (rng() * TEX_SIZE)|0, 1, 1);
+            }
             break;
         case BLOCKS.GLOW_SHROOM:
             ctx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
@@ -1070,8 +1074,9 @@ function generateBlockTexture(ctx, blockType, face, rng) {
             fillBase(ctx, 80, 180, 60);
             addNoise(ctx, rng, 20);
             addPixels(ctx, rng, 'rgba(40, 120, 20, 0.8)', 30);
-            ctx.clearRect(rng() * 10, rng() * 10, 3, 3);
-            ctx.clearRect(rng() * 10, rng() * 10, 4, 2);
+            for (let i = 0; i < 40; i++) {
+                ctx.clearRect((rng() * TEX_SIZE)|0, (rng() * TEX_SIZE)|0, 1, 1);
+            }
             break;
         case BLOCKS.OASIS_FERN:
             ctx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
@@ -1229,7 +1234,7 @@ function generateBlockTexture(ctx, blockType, face, rng) {
             fillBase(ctx, 255, 0, 255);
             break;
     }
-
+}
 function hasFaceVariants(blockType) {
     return [
         BLOCKS.GRASS, BLOCKS.WOOD, BLOCKS.MUSHROOM_STEM, BLOCKS.SAVANNA_GRASS, BLOCKS.ACACIA_WOOD, BLOCKS.SWAMP_GRASS, BLOCKS.ALIEN_GRASS, BLOCKS.PORTAL_FRAME, BLOCKS.CHERRY_LOG, BLOCKS.AUTUMN_WOOD, BLOCKS.PALM_WOOD,

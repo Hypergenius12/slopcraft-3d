@@ -108,12 +108,13 @@ class ChestVisual {
 }
 
 class DoorVisual {
-    constructor(scene, x, y, z, atlas) {
+    constructor(scene, x, y, z, atlas, alignZ) {
         this.scene = scene;
         this.pos = { x, y, z };
         this.isOpen = false;
         this.doorAngle = 0;
         this.targetAngle = 0;
+        this.alignZ = alignZ;
         
         this.group = new THREE.Group();
         // Position at the hinge corner (left side of the block)
@@ -130,9 +131,14 @@ class DoorVisual {
         
         const mat = makeMat(atlas.getUV(window.BLOCKS.DUNGEON_DOOR, 'front'));
         
-        // 1 block wide, 1 block tall, 0.15 deep
-        const doorGeo = new THREE.BoxGeometry(1.0, 1.0, 0.15);
-        doorGeo.translate(0.5, 0.5, 0.075); // Pivot at left edge (x=0, z=0)
+        // 1 block wide, 2 block tall, 0.15 deep
+        const doorGeo = new THREE.BoxGeometry(1.0, 2.0, 0.15);
+        // Translate so origin is at the bottom-left corner of the mesh
+        doorGeo.translate(0.5, 1.0, 0.075); 
+        
+        if (alignZ) {
+            doorGeo.rotateY(-Math.PI / 2); // Rotate so it spans from z=0 to z=1
+        }
         
         this.mesh = new THREE.Mesh(doorGeo, mat);
         this.group.add(this.mesh);
@@ -141,7 +147,7 @@ class DoorVisual {
     }
     
     update(dt) {
-        this.targetAngle = this.isOpen ? Math.PI / 2 : 0;
+        this.targetAngle = this.isOpen ? (this.alignZ ? Math.PI / 2 : -Math.PI / 2) : 0;
         this.doorAngle += (this.targetAngle - this.doorAngle) * 10 * dt;
         this.mesh.rotation.y = this.doorAngle;
     }
@@ -226,15 +232,44 @@ class Game {
         this.world.onDoorPlaced = (x, y, z) => this._addDoor(x, y, z);
         this.world.onDoorRemoved = (x, y, z) => {
             const key = `${x},${y},${z}`;
+            const keyBelow = `${x},${y-1},${z}`;
             if (this.doorVisuals.has(key)) {
                 this.doorVisuals.get(key).dispose();
                 this.doorVisuals.delete(key);
+            }
+            if (this.doorVisuals.has(keyBelow)) {
+                this.doorVisuals.get(keyBelow).dispose();
+                this.doorVisuals.delete(keyBelow);
             }
         };
         
         this.world.isDoorOpen = (x, y, z) => {
             const key = `${x},${y},${z}`;
-            return this.doorVisuals.has(key) && this.doorVisuals.get(key).isOpen;
+            const keyBelow = `${x},${y-1},${z}`;
+            return (this.doorVisuals.has(key) && this.doorVisuals.get(key).isOpen) ||
+                   (this.doorVisuals.has(keyBelow) && this.doorVisuals.get(keyBelow).isOpen);
+        };
+
+        this.world.onChunkUnloaded = (cx, cz) => {
+            const minX = cx * 16; // CHUNK_SIZE
+            const maxX = minX + 16;
+            const minZ = cz * 16;
+            const maxZ = minZ + 16;
+            
+            // Cleanup door visuals in unloaded chunk
+            for (const [key, visual] of this.doorVisuals.entries()) {
+                if (visual.pos.x >= minX && visual.pos.x < maxX && visual.pos.z >= minZ && visual.pos.z < maxZ) {
+                    visual.dispose();
+                    this.doorVisuals.delete(key);
+                }
+            }
+            // Cleanup chest visuals in unloaded chunk
+            for (const [key, visual] of this.chestVisuals.entries()) {
+                if (visual.pos.x >= minX && visual.pos.x < maxX && visual.pos.z >= minZ && visual.pos.z < maxZ) {
+                    visual.dispose();
+                    this.chestVisuals.delete(key);
+                }
+            }
         };
 
         // Expose BLOCKS globally for UISystem recipe matching
@@ -367,32 +402,25 @@ class Game {
             this.chestInventories.set(key, inv);
 
             if (isGenerated) {
-                // Determine loot type based on height / location
-        if (isGenerated) {
-            // Generate loot for this chest
-            if (!this.chestInventories.has(key)) {
-                const inv = new Array(27).fill(null);
-                this.chestInventories.set(key, inv);
-                
                 // Randomly generate loot
                 const rng = () => Math.random();
                 let lootTable = [];
                 // Check if this is a dungeon chest based on depth
                 if (y < 40) {
                     lootTable = [
-                        { item: Item.materialItem('iron_ingot', 1, 'Iron Ingot'), maxCount: 8, chance: 0.6 },
-                        { item: Item.materialItem('gold_ingot', 1, 'Gold Ingot'), maxCount: 4, chance: 0.4 },
-                        { item: Item.materialItem('diamond', 1, 'Diamond'), maxCount: 2, chance: 0.2 },
-                        { item: Item.materialItem('mana_crystal', 1, 'Mana Crystal'), maxCount: 4, chance: 0.3 },
-                        { item: Item.equipmentItem('sword', { damage: 8 }, 'Iron Sword'), maxCount: 1, chance: 0.2 },
-                        { item: Item.equipmentItem('chest', { protection: 4 }, 'Iron Chestplate'), maxCount: 1, chance: 0.15 }
+                        { item: new Item('material', 'iron_ingot', {}, 'Iron Ingot'), maxCount: 8, chance: 0.6 },
+                        { item: new Item('material', 'gold_ingot', {}, 'Gold Ingot'), maxCount: 4, chance: 0.4 },
+                        { item: new Item('material', 'diamond', {}, 'Diamond'), maxCount: 2, chance: 0.2 },
+                        { item: new Item('material', 'mana_crystal', {}, 'Mana Crystal'), maxCount: 4, chance: 0.3 },
+                        { item: Item.equipmentItem('sword_iron', { damage: 8 }, 'Iron Sword'), maxCount: 1, chance: 0.2 },
+                        { item: Item.equipmentItem('chestplate_iron', { protection: 4 }, 'Iron Chestplate'), maxCount: 1, chance: 0.15 }
                     ];
                 } else {
                     lootTable = [
-                        { item: Item.materialItem('wood_log', 1, 'Wood Log'), maxCount: 16, chance: 0.7 },
-                        { item: Item.materialItem('cobblestone', 1, 'Cobblestone'), maxCount: 32, chance: 0.8 },
-                        { item: Item.materialItem('coal', 1, 'Coal'), maxCount: 12, chance: 0.5 },
-                        { item: Item.equipmentItem('pickaxe', { mineSpeed: 1.5, damage: 3 }, 'Stone Pickaxe'), maxCount: 1, chance: 0.3 },
+                        { item: new Item('material', 'wood_log', {}, 'Wood Log'), maxCount: 16, chance: 0.7 },
+                        { item: new Item('material', 'cobblestone', {}, 'Cobblestone'), maxCount: 32, chance: 0.8 },
+                        { item: new Item('material', 'coal', {}, 'Coal'), maxCount: 12, chance: 0.5 },
+                        { item: Item.equipmentItem('pickaxe_stone', { mineSpeed: 1.5, damage: 3 }, 'Stone Pickaxe'), maxCount: 1, chance: 0.3 },
                         { item: new Item('spell', 'fire', { spell: { element: 'fire', type: 'projectile', cost: 10, modifiers: [] } }, 'Fire Spell'), maxCount: 1, chance: 0.4 },
                         { item: new Item('spell', 'ice', { spell: { element: 'ice', type: 'projectile', cost: 10, modifiers: [] } }, 'Ice Spell'), maxCount: 1, chance: 0.4 }
                     ];
@@ -421,9 +449,27 @@ class Game {
     }
 
     _addDoor(x, y, z) {
+        // Skip if this is the top half of a door (only generate visual for the bottom block)
+        if (this.world.getBlock(x, y - 1, z) === window.BLOCKS.DUNGEON_DOOR) return;
+
         const key = `${x},${y},${z}`;
         if (!this.doorVisuals.has(key)) {
-            const visual = new DoorVisual(this.engine.scene, x, y, z, this.atlas);
+            // Check adjacent blocks to determine orientation
+            const nx = this.world.getBlock(x - 1, y, z);
+            const px = this.world.getBlock(x + 1, y, z);
+            const nz = this.world.getBlock(x, y, z - 1);
+            const pz = this.world.getBlock(x, y, z + 1);
+
+            const blockedZ = (nz !== window.BLOCKS.AIR && nz !== window.BLOCKS.DUNGEON_DOOR) || 
+                             (pz !== window.BLOCKS.AIR && pz !== window.BLOCKS.DUNGEON_DOOR);
+            const blockedX = (nx !== window.BLOCKS.AIR && nx !== window.BLOCKS.DUNGEON_DOOR) || 
+                             (px !== window.BLOCKS.AIR && px !== window.BLOCKS.DUNGEON_DOOR);
+            
+            // Align Z if X is blocked and Z is open (i.e., corridor runs along Z, doorway cuts across X, so door spans X)
+            // Wait, if blockedX is true, walls are on X axis. Door should span Z! So alignZ should be true.
+            const alignZ = blockedX && !blockedZ;
+
+            const visual = new DoorVisual(this.engine.scene, x, y, z, this.atlas, alignZ);
             this.doorVisuals.set(key, visual);
         }
     }
@@ -723,25 +769,12 @@ class Game {
                 
                 // If we didn't hit the bottom of the door, search vertically for the visual we clicked on
                 if (!visual) {
-                    for (let dy = -2; dy <= 2; dy++) {
-                        const k2 = `${hit.blockPos.x},${hit.blockPos.y + dy},${hit.blockPos.z}`;
-                        if (this.doorVisuals.has(k2)) {
-                            visual = this.doorVisuals.get(k2);
-                            break;
-                        }
-                    }
+                    const keyBelow = `${hit.blockPos.x},${hit.blockPos.y - 1},${hit.blockPos.z}`;
+                    visual = this.doorVisuals.get(keyBelow);
                 }
                 
                 if (visual) {
                     visual.isOpen = !visual.isOpen;
-                    // Also toggle vertically stacked doors (dungeon generation stacks them 3 high)
-                    for (let dy = -2; dy <= 2; dy++) {
-                        if (dy === 0) continue;
-                        const k2 = `${visual.pos.x},${visual.pos.y + dy},${visual.pos.z}`;
-                        if (this.doorVisuals.has(k2)) {
-                            this.doorVisuals.get(k2).isOpen = visual.isOpen;
-                        }
-                    }
                 }
                 this.input.mouse.rightClick = false;
                 return;

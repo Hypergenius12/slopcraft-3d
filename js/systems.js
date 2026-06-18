@@ -595,15 +595,20 @@ class UISystem {
             const targetCraft = this.craftingSlots[targetIndex];
             if (!targetCraft) {
                 this.craftingSlots[targetIndex] = itemData;
-                inv[srcIndex] = null;
             } else if (targetCraft.item.type === itemData.item.type && targetCraft.item.subtype === itemData.item.subtype && itemData.item.stackable) {
                 const add = Math.min(itemData.count, itemData.item.maxStack - targetCraft.count);
                 targetCraft.count += add;
-                inv[srcIndex].count -= add;
-                if (inv[srcIndex].count <= 0) inv[srcIndex] = null;
+                itemData.count -= add;
+                if (itemData.count > 0) {
+                    if (this.dragState.isSplit) inv[srcIndex].count += itemData.count;
+                    else inv[srcIndex] = itemData;
+                }
             } else {
-                this.craftingSlots[targetIndex] = itemData;
-                inv[srcIndex] = targetCraft;
+                if (this.dragState.isSplit) inv[srcIndex].count += itemData.count;
+                else {
+                    this.craftingSlots[targetIndex] = itemData;
+                    inv[srcIndex] = targetCraft;
+                }
             }
         } else if (srcType === 'crafting' && targetType === 'crafting') {
             const temp = this.craftingSlots[targetIndex];
@@ -611,16 +616,24 @@ class UISystem {
             this.craftingSlots[srcIndex] = temp;
         } else if (srcType === 'inventory' && targetType === 'inventory') {
             const targetSlot = inv[targetIndex];
-            if (targetSlot && targetSlot.item.type === itemData.item.type && targetSlot.item.subtype === itemData.item.subtype && targetSlot.item.stackable) {
+            if (!targetSlot) {
+                inv[targetIndex] = itemData;
+            } else if (targetSlot.item.type === itemData.item.type && targetSlot.item.subtype === itemData.item.subtype && targetSlot.item.stackable) {
                 // Stack
                 const add = Math.min(itemData.count, targetSlot.item.maxStack - targetSlot.count);
                 targetSlot.count += add;
-                inv[srcIndex].count -= add;
-                if (inv[srcIndex].count <= 0) inv[srcIndex] = null;
+                itemData.count -= add;
+                if (itemData.count > 0) {
+                    if (this.dragState.isSplit) inv[srcIndex].count += itemData.count;
+                    else inv[srcIndex] = itemData;
+                }
             } else {
                 // Swap
-                inv[srcIndex] = targetSlot;
-                inv[targetIndex] = itemData;
+                if (this.dragState.isSplit) inv[srcIndex].count += itemData.count;
+                else {
+                    inv[srcIndex] = targetSlot;
+                    inv[targetIndex] = itemData;
+                }
             }
         } 
         else if (srcType === 'wand' && targetType === 'wand') {
