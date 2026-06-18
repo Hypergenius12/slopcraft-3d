@@ -127,9 +127,9 @@ class Game {
 
         // Minimap Camera
         const d = 40; // minimap view half-size in blocks
-        // Reduce far plane to 160 so we don't render caves or distant geometry on minimap
-        this.minimapCamera = new THREE.OrthographicCamera(-d, d, d, -d, 1, 160);
-        this.minimapCamera.position.set(0, 150, 0);
+        // Render true top-down view (far plane large enough to see ground)
+        this.minimapCamera = new THREE.OrthographicCamera(-d, d, d, -d, 1, 300);
+        this.minimapCamera.position.set(0, 250, 0);
         this.minimapCamera.lookAt(0, 0, 0);
 
         this.input.requestPointerLock();
@@ -214,6 +214,21 @@ class Game {
                 </div>
             `;
             document.body.appendChild(hud);
+        }
+        // Minimap Overlay
+        if (!document.getElementById('minimap-overlay')) {
+            const mmo = document.createElement('div');
+            mmo.id = 'minimap-overlay';
+            // Position matches OpenGL viewport rx, ry from top right.
+            // mapSize=200, padding=20.
+            mmo.style.cssText = 'position: absolute; top: 20px; right: 20px; width: 200px; height: 200px; pointer-events: none; z-index: 100; font-family: Outfit, sans-serif;';
+            mmo.innerHTML = `
+                <div style="position: absolute; top: 5px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; text-shadow: 1px 1px 0 #000;">N</div>
+                <div style="position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; text-shadow: 1px 1px 0 #000;">S</div>
+                <div style="position: absolute; top: 50%; left: 5px; transform: translateY(-50%); color: white; font-weight: bold; text-shadow: 1px 1px 0 #000;">W</div>
+                <div style="position: absolute; top: 50%; right: 5px; transform: translateY(-50%); color: white; font-weight: bold; text-shadow: 1px 1px 0 #000;">E</div>
+            `;
+            document.body.appendChild(mmo);
         }
     }
 
@@ -563,7 +578,15 @@ class Game {
         const isUnderwater = window.getBlockProperties ? window.getBlockProperties(headBlock).isLiquid :
             (getBlockProperties ? getBlockProperties(headBlock).isLiquid : false);
 
-        this.lighting.update(dt, this.engine.camera.position, isUnderwater);
+        let isUnderground = true;
+        for (let y = headY; y < 128; y++) {
+            if (this.world.getBlock(headX, y, headZ) === BLOCKS.AIR) {
+                isUnderground = false;
+                break;
+            }
+        }
+
+        this.lighting.update(dt, this.engine.camera.position, isUnderwater, isUnderground);
 
         if (this.engine.scene.fog) {
             // Keep track of the original planet fog density for Systems to use
@@ -573,7 +596,6 @@ class Game {
         }
         this.particles.update(dt);
         this.cloudSystem.update(dt, this.engine.camera.position);
-        this.meteorSystem.update(dt, this.player.position);
         this.entityManager.update(dt, this.world, this.player.position, this.player.inventory, this.player);
         const _tempVec3 = new THREE.Vector3();
         
@@ -641,14 +663,16 @@ class Game {
         this.engine.renderer.render(this.engine.scene, this.engine.camera);
 
         // 2. Minimap Render Pass
+        const mmo = document.getElementById('minimap-overlay');
         if (this.minimapCamera && !this.ui.isOpen) {
+            if (mmo) mmo.style.display = 'block';
             const mapSize = 200;
             const padding = 20;
             const rx = window.innerWidth - mapSize - padding;
             const ry = window.innerHeight - mapSize - padding;
             
-            this.minimapCamera.position.set(this.player.position.x, this.player.position.y + 150, this.player.position.z);
-            this.minimapCamera.lookAt(this.player.position.x, this.player.position.y, this.player.position.z);
+            this.minimapCamera.position.set(this.player.position.x, 250, this.player.position.z);
+            this.minimapCamera.lookAt(this.player.position.x, 0, this.player.position.z);
             
             this.engine.renderer.setViewport(rx, ry, mapSize, mapSize);
             this.engine.renderer.setScissor(rx, ry, mapSize, mapSize);
@@ -667,12 +691,16 @@ class Game {
             
             this.engine.scene.fog = oldFog;
             this.viewModel.visible = true;
-            this.engine.renderer.setScissorTest(false);
-            
-            // Reset viewport for UI
-            this.engine.renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+            if (this.engine.scene.fog) {
+                this.engine.scene.fog.density = this.engine.scene.fog.baseDensity;
+            }
+        } else {
+            if (mmo) mmo.style.display = 'none';
         }
-
+        
+        // Reset viewport for UI
+        this.engine.renderer.setScissorTest(false);
+        this.engine.renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
         this.ui.updateHUD(this.player, this.fps, this.atlas);
 
         // Update HUD bars
