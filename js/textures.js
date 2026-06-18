@@ -249,26 +249,61 @@ function generateBlockTexture(ctx, blockType, face, rng) {
                 addNoise(ctx, rng, 20);
                 addPixels(ctx, rng, 'rgba(100, 70, 45, 0.6)', 15);
             } else {
-                // Dirt base
-                fillBase(ctx, 134, 96, 67);
-                addNoise(ctx, rng, 20);
-                addPixels(ctx, rng, 'rgba(100, 70, 45, 0.7)', 30);
-                
-                // Grass top overlay
-                ctx.fillStyle = '#72a145'; // Base grass color
-                for (let x = 0; x < TEX_SIZE; x++) {
-                    // Random grass depth per column (3 to 5 pixels)
-                    const depth = 3 + Math.floor(rng() * 3);
-                    ctx.fillRect(x, 0, 1, depth);
+                // Exact Grass Side Mask (classic pattern)
+                const grassMask = [
+                    "GGGGGGGGGGGGGGGG",
+                    "GGGGGGGGGGGGGGGG",
+                    "GGGGGGGGGGGGGGGG",
+                    "GGGGGGGGGGGGGGGG",
+                    "GGGGGGGDGGGGGGGD",
+                    "GDGGGGGDDGGGGDGD",
+                    "GDDGGDDDDGDGDDDD",
+                    "DDDDGDDDDDDDDDDD",
+                    "DDDDDDDDDDDDDDDD",
+                    "DDDDDDDDDDDDDDDD",
+                    "DDDDDDDDDDDDDDDD",
+                    "DDDDDDDDDDDDDDDD",
+                    "DDDDDDDDDDDDDDDD",
+                    "DDDDDDDDDDDDDDDD",
+                    "DDDDDDDDDDDDDDDD",
+                    "DDDDDDDDDDDDDDDD"
+                ];
+
+                const id = ctx.createImageData(TEX_SIZE, TEX_SIZE);
+                const d = id.data;
+
+                for (let y = 0; y < TEX_SIZE; y++) {
+                    for (let x = 0; x < TEX_SIZE; x++) {
+                        const i = (y * TEX_SIZE + x) * 4;
+                        const isGrass = grassMask[y][x] === 'G';
+
+                        let r, g, b;
+                        if (isGrass) {
+                            // Grass base color matching image
+                            r = 106; g = 158; b = 59;
+                        } else {
+                            // Dirt base color matching image
+                            r = 114; g = 80; b = 56;
+                        }
+
+                        // Add distinct blocky noise
+                        const noise = (rng() - 0.5) * 35;
+                        r = Math.min(255, Math.max(0, r + noise));
+                        g = Math.min(255, Math.max(0, g + noise));
+                        b = Math.min(255, Math.max(0, b + noise));
+
+                        // If dirt and right under grass, add a tiny bit of shadow
+                        if (!isGrass && y > 0 && grassMask[y-1][x] === 'G') {
+                            r *= 0.8; g *= 0.8; b *= 0.8;
+                        }
+
+                        d[i] = r;
+                        d[i+1] = g;
+                        d[i+2] = b;
+                        d[i+3] = 255;
+                    }
                 }
-                
-                // Add noise/details to the grass part
-                ctx.fillStyle = 'rgba(90, 130, 50, 0.8)';
-                for (let i = 0; i < 15; i++) {
-                    const px = Math.floor(rng() * TEX_SIZE);
-                    const py = Math.floor(rng() * 4);
-                    ctx.fillRect(px, py, 1, 1);
-                }
+                ctx.putImageData(id, 0, 0);
             }
             break;
         case BLOCKS.DIRT:
