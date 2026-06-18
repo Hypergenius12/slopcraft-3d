@@ -116,6 +116,12 @@ export class Player {
         this.rotation.pitch -= mouse.dy * sensitivity;
         this.rotation.pitch = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, this.rotation.pitch));
 
+        // Ensure the chunk the player is currently in is loaded. If not, suspend physics so they don't fall into the void
+        const chunk = world.getChunkAt(this.position.x, this.position.z);
+        if (!chunk || !chunk.blocks) {
+            return;
+        }
+
         // Direction vectors
         const forward = new THREE.Vector3(-Math.sin(this.rotation.yaw), 0, -Math.cos(this.rotation.yaw)).normalize();
         const right = new THREE.Vector3(Math.cos(this.rotation.yaw), 0, -Math.sin(this.rotation.yaw)).normalize();

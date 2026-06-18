@@ -1005,15 +1005,16 @@ Chunks: ${this.world.chunks.size} | Mobs: ${this.entityManager.mobs.length} | Re
 }
 
 // Start game on load
-window.onload = () => {
-    const game = new Game(); window.game = game;
-    const startBtn = document.getElementById('btn-new-game');
-    if (startBtn) {
-        startBtn.onclick = () => {
-            document.getElementById('start-screen').classList.add('hidden');
-            game.start();
-        };
-    } else {
-        game.start(); // fallback if no button
-    }
-};
+const game = new Game(); 
+window.game = game;
+
+// Setup button listeners after DOM is parsed (modules run deferred anyway)
+const startBtn = document.getElementById('btn-new-game');
+if (startBtn) {
+    startBtn.onclick = () => {
+        document.getElementById('start-screen').classList.add('hidden');
+        game.start();
+    };
+} else {
+    game.start(); // fallback if no button
+}

@@ -252,7 +252,7 @@ function generateOreVein(blocks, wx, y, wz, oreType, minSize, maxSize, rng) {
         // Place ore if it's within chunk bounds and is stone
         if (currentX >= 0 && currentX < CHUNK_SIZE && currentY >= 0 && currentY < CHUNK_HEIGHT && currentZ >= 0 && currentZ < CHUNK_SIZE) {
             const idx = (currentY * CHUNK_SIZE * CHUNK_SIZE) + (currentZ * CHUNK_SIZE) + currentX;
-            if (blocks[idx] === BLOCKS.STONE) {
+            if (blocks[idx] === BLOCKS.STONE || blocks[idx] === BLOCKS.AIR) {
                 blocks[idx] = oreType;
             }
         }
@@ -370,6 +370,7 @@ export function generateChunkTerrain(cx, cz, params) {
                         else if (colRng() < 0.3) { oreType = BLOCKS.COAL_ORE; minS = 3; maxS = 10; }
                         
                         generateOreVein(blocks, x, y, z, oreType, minS, maxS, colRng);
+                        type = oreType; // Make sure the center block gets assigned this type to prevent overwrite
                     }
                 } else if (y <= surfaceY) {
                     type = (y === surfaceY) ? biome.surface : biome.dirt;
@@ -382,7 +383,10 @@ export function generateChunkTerrain(cx, cz, params) {
                     type = biome === BIOMES.VOLCANIC ? BLOCKS.LAVA : (biome === BIOMES.SWAMP ? BLOCKS.SWAMP_WATER : BLOCKS.WATER);
                 }
 
-                blocks[blockIndex(x, y, z)] = type;
+                const idx = blockIndex(x, y, z);
+                if (blocks[idx] === BLOCKS.AIR) {
+                    blocks[idx] = type;
+                }
             }
         }
     }
