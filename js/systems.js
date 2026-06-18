@@ -647,7 +647,6 @@ class UISystem {
                     }
                 }
             }
-        }
         } else if (srcType === 'wand' && targetType === 'inventory') {
             const targetSlot = inv[targetIndex];
             // Only swap if empty or also a spell
