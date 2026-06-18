@@ -87,9 +87,25 @@ export class Player {
 
         // Give starting items
         const starterWand = generateRandomWand();
-        starterWand.equipSpell(0, generateRandomSpell());
+        starterWand.name = "Archmage Wand";
+        starterWand.maxSlots = 8;
+        starterWand.spellSlots = new Array(8).fill(null);
+        starterWand.cooldowns = new Array(8).fill(0);
+        
+        // Load it up with some cool spells and modifiers
+        const spell1 = generateRandomSpell();
+        spell1.addModifier(generateRandomModifier());
+        starterWand.equipSpell(0, spell1);
+        
+        const spell2 = generateRandomSpell();
+        spell2.addModifier(generateRandomModifier());
+        spell2.addModifier(generateRandomModifier());
+        starterWand.equipSpell(1, spell2);
+        
+        starterWand.equipSpell(2, generateRandomSpell());
+
         this.inventory.addItem(Item.wandItem(starterWand));
-        this.inventory.addItem(Item.blockItem(BLOCKS.TORCH, 'Torch'), 32);
+        this.inventory.addItem(Item.blockItem(BLOCKS.TORCH, 'Torch'), 64);
         this.equippedWand = starterWand;
     }
 
@@ -1444,9 +1460,13 @@ export class EntityManager {
                     if (b !== BLOCKS.AIR && b !== BLOCKS.LAVA) {
                         let type;
                         if (b === BLOCKS.WATER || b === BLOCKS.SWAMP_WATER) {
-                            type = 'FISH';
+                            const aquatic = ['TROPICAL_FISH', 'SALMON', 'PUFFERFISH', 'TURTLE'];
+                            type = aquatic[Math.floor(Math.random() * aquatic.length)];
                         } else {
                             type = pickRandomMobType();
+                            while(MOB_TYPES[type].waterOnly) {
+                                type = pickRandomMobType();
+                            }
                         }
                         const config = MOB_TYPES[type];
                         let spawnY = y + 2;
