@@ -134,8 +134,49 @@ export class Player {
         // Apply speed bonus
         speedMult *= this.speedMult;
 
+        // Crouch logic
+        const NORMAL_HEIGHT = 1.8;
+        const NORMAL_EYE = 1.62;
+        const CROUCH_HEIGHT = 0.9;
+        const CROUCH_EYE = 0.72;
+
+        let shouldCrouch = keys.crouch;
+
+        if (!shouldCrouch && this.height < NORMAL_HEIGHT) {
+            // Check if we have headroom to stand up
+            // Check for solid blocks in the space between our current head and the normal head
+            const minX = Math.floor(this.position.x - this.width/2 + 0.01);
+            const maxX = Math.floor(this.position.x + this.width/2 - 0.01);
+            const minZ = Math.floor(this.position.z - this.width/2 + 0.01);
+            const maxZ = Math.floor(this.position.z + this.width/2 - 0.01);
+            const minY = Math.floor(this.position.y + this.height);
+            const maxY = Math.floor(this.position.y + NORMAL_HEIGHT - 0.01);
+            
+            let headroomBlocked = false;
+            for(let y=minY; y<=maxY; y++) {
+                for(let x=minX; x<=maxX; x++) {
+                    for(let z=minZ; z<=maxZ; z++) {
+                        const block = world.getBlock(x,y,z);
+                        const props = getBlockProperties(block);
+                        if (props && props.solid) headroomBlocked = true;
+                    }
+                }
+            }
+
+            if (headroomBlocked) shouldCrouch = true; // Forced to stay crouched
+        }
+
+        if (shouldCrouch) {
+            this.height = CROUCH_HEIGHT;
+            this.eyeHeight = CROUCH_EYE;
+            speedMult *= 0.5;
+        } else {
+            this.height = NORMAL_HEIGHT;
+            this.eyeHeight = NORMAL_EYE;
+        }
+
         // Movement input
-        const speed = (keys.sprint ? 9.5 : 6.0) * speedMult;
+        const speed = (keys.sprint && !shouldCrouch ? 9.5 : 6.0) * speedMult;
         let moveDir = new THREE.Vector3(0,0,0);
         
         if (keys.forward) moveDir.add(forward);

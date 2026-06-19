@@ -92,8 +92,8 @@ export class InputManager {
             case 'KeyA': case 'ArrowLeft': this.keys.left = true; break;
             case 'KeyD': case 'ArrowRight': this.keys.right = true; break;
             case 'Space': this.keys.jump = true; break;
-            case 'ShiftLeft': case 'ShiftRight': 
-            case 'ControlLeft': case 'ControlRight':
+            case 'ShiftLeft': case 'ShiftRight': this.keys.crouch = true; break;
+            case 'ControlLeft': case 'ControlRight': this.keys.sprint = true; break;
             case 'KeyC': this.keys.crouch = true; break;
 
             case 'Tab':
@@ -136,8 +136,8 @@ export class InputManager {
             case 'KeyA': case 'ArrowLeft': this.keys.left = false; break;
             case 'KeyD': case 'ArrowRight': this.keys.right = false; break;
             case 'Space': this.keys.jump = false; break;
-            case 'ShiftLeft': case 'ShiftRight': 
-            case 'ControlLeft': case 'ControlRight':
+            case 'ShiftLeft': case 'ShiftRight': this.keys.crouch = false; break;
+            case 'ControlLeft': case 'ControlRight': this.keys.sprint = false; break;
             case 'KeyC': this.keys.crouch = false; break;
 
             case 'Tab': case 'KeyI': case 'KeyE': this._menuKeysDown.inventory = false; break;
