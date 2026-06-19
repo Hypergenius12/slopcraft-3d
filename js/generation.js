@@ -48,7 +48,7 @@ export class PlanetParams {
 
         // Terrain
         // Terrain parameters tweaked for Minecraft-like ruggedness
-        this.terrainScale = 120 + rng() * 100; // Large macro shapes
+        this.terrainScale = 300 + rng() * 200; // Large macro shapes
         this.terrainHeight = 40 + rng() * 20; // Taller hills and mountains (40-60 range)
         this.baseHeight = 45 + rng() * 10; // Ensure enough depth for oceans and height for peaks
         this.seaLevel = this.baseHeight - 8;
@@ -81,9 +81,9 @@ export function getBiomeParams(wx, wz, params) {
     const warpZ = noise2D(wz * 0.01, wx * 0.01) * 30;
     
     // Scaled down frequencies to make biomes larger and more expansive
-    const temp = (tempNoise((wx + warpX) * 0.00005, (wz + warpZ) * 0.00005) + 1) / 2;
-    const moist = (moistNoise((wx + warpX) * 0.00005, (wz + warpZ) * 0.00005) + 1) / 2;
-    const subNoise = (noise2D((wx + warpX) * 0.0005, (wz + warpZ) * 0.0005) + 1) / 2;
+    const temp = (tempNoise((wx + warpX) * 0.00002, (wz + warpZ) * 0.00002) + 1) / 2;
+    const moist = (moistNoise((wx + warpX) * 0.00002, (wz + warpZ) * 0.00002) + 1) / 2;
+    const subNoise = (noise2D((wx + warpX) * 0.0001, (wz + warpZ) * 0.0001) + 1) / 2;
 
     const isHot = temp > 0.6;
     const isCold = temp < 0.4;
@@ -423,7 +423,7 @@ export function generateChunkTerrain(cx, cz, params) {
                     safeSetBlock(blocks, tx, surfaceY + 1, tz, BLOCKS.ALIEN_TALL_GRASS);
                 } else if (r < 0.001) {
                     generatePortalStructure(blocks, tx, surfaceY + 1, tz, floraRng);
-                } else if (r < 0.00005 && (biome === BIOMES.FOREST || biome === BIOMES.PLAINS || biome === BIOMES.TUNDRA)) {
+                } else if (r < 0.00001 && (biome === BIOMES.FOREST || biome === BIOMES.PLAINS || biome === BIOMES.TUNDRA)) {
                     generateWizardTower(blocks, tx, surfaceY + 1, tz, floraRng);
                 } else if (r < 0.002 && (biome === BIOMES.FOREST || biome === BIOMES.PLAINS || biome === BIOMES.TUNDRA)) {
                     generateCabin(blocks, tx, surfaceY + 1, tz, floraRng);
@@ -679,7 +679,7 @@ function carveGlobalDungeons(blocks, cx, cz, params) {
             // Determine if a dungeon starts at chunk (sx, sz)
             const seedStr = params.seed + "_" + sx + "_" + sz;
             const startRng = seededRandom(hashSeed(seedStr));
-            if (startRng() < params.dungeonFrequency * 0.02) { // reduced frequency since they are huge
+            if (startRng() < params.dungeonFrequency * 0.005) { // reduced frequency since they are huge
                 const themeIndex = Math.floor(startRng() * DUNGEON_THEMES.length);
                 const theme = DUNGEON_THEMES[themeIndex];
                 const rooms = generateDungeonStructure(startRng, sx * CHUNK_SIZE + 8, 15, sz * CHUNK_SIZE + 8);

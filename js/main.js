@@ -107,57 +107,7 @@ class ChestVisual {
     }
 }
 
-class DoorVisual {
-    constructor(scene, x, y, z, atlas, alignZ) {
-        this.scene = scene;
-        this.pos = { x, y, z };
-        this.isOpen = false;
-        this.doorAngle = 0;
-        this.targetAngle = 0;
-        this.alignZ = alignZ;
-        
-        this.group = new THREE.Group();
-        // Position at the hinge corner (left side of the block)
-        this.group.position.set(x, y, z);
-        
-        const tex = atlas.texture;
-        const makeMat = (uvData) => {
-            const faceTex = tex.clone();
-            faceTex.repeat.set(uvData.uSize, uvData.vSize);
-            faceTex.offset.set(uvData.u, uvData.v);
-            faceTex.needsUpdate = true;
-            return new THREE.MeshLambertMaterial({ map: faceTex });
-        };
-        
-        const mat = makeMat(atlas.getUV(window.BLOCKS.DUNGEON_DOOR, 'front'));
-        
-        // 1 block wide, 1 block tall, 0.15 deep
-        const doorGeo = new THREE.BoxGeometry(1.0, 1.0, 0.15);
-        // Translate so origin is at the bottom-left corner of the mesh
-        doorGeo.translate(0.5, 0.5, 0.075); 
-        
-        if (alignZ) {
-            doorGeo.rotateY(Math.PI / 2); // Rotate so it spans from z=0 to z=1
-        }
-        
-        this.mesh = new THREE.Mesh(doorGeo, mat);
-        this.group.add(this.mesh);
-        
-        this.scene.add(this.group);
-    }
-    
-    update(dt) {
-        this.targetAngle = this.isOpen ? (this.alignZ ? Math.PI / 2 : Math.PI / 2) : 0;
-        this.doorAngle += (this.targetAngle - this.doorAngle) * 10 * dt;
-        this.mesh.rotation.y = this.doorAngle;
-    }
-    
-    dispose() {
-        this.scene.remove(this.group);
-        if (this.mesh.geometry) this.mesh.geometry.dispose();
-        if (this.mesh.material) this.mesh.material.dispose();
-    }
-}
+
 
 class Game {
     constructor() {
@@ -243,30 +193,7 @@ class Game {
             }
         };
 
-        // Door Management
-        this.doorVisuals = new Map();
-        
-        this.world.onDoorGenerated = (x, y, z) => this._addDoor(x, y, z);
-        this.world.onDoorPlaced = (x, y, z) => this._addDoor(x, y, z);
-        this.world.onDoorRemoved = (x, y, z) => {
-            const key = `${x},${y},${z}`;
-            const keyBelow = `${x},${y-1},${z}`;
-            if (this.doorVisuals.has(key)) {
-                this.doorVisuals.get(key).dispose();
-                this.doorVisuals.delete(key);
-            }
-            if (this.doorVisuals.has(keyBelow)) {
-                this.doorVisuals.get(keyBelow).dispose();
-                this.doorVisuals.delete(keyBelow);
-            }
-        };
-        
-        this.world.isDoorOpen = (x, y, z) => {
-            const key = `${x},${y},${z}`;
-            const keyBelow = `${x},${y-1},${z}`;
-            return (this.doorVisuals.has(key) && this.doorVisuals.get(key).isOpen) ||
-                   (this.doorVisuals.has(keyBelow) && this.doorVisuals.get(keyBelow).isOpen);
-        };
+
 
         this.world.onBlockDestroyed = (x, y, z, oldType, newType) => {
             if (oldType === BLOCKS.AIR || oldType === BLOCKS.WATER || oldType === BLOCKS.LAVA || oldType === BLOCKS.SWAMP_WATER) return;
@@ -302,13 +229,6 @@ class Game {
             const minZ = cz * 16;
             const maxZ = minZ + 16;
             
-            // Cleanup door visuals in unloaded chunk
-            for (const [key, visual] of this.doorVisuals.entries()) {
-                if (visual.pos.x >= minX && visual.pos.x < maxX && visual.pos.z >= minZ && visual.pos.z < maxZ) {
-                    visual.dispose();
-                    this.doorVisuals.delete(key);
-                }
-            }
             // Cleanup chest visuals in unloaded chunk
             for (const [key, visual] of this.chestVisuals.entries()) {
                 if (visual.pos.x >= minX && visual.pos.x < maxX && visual.pos.z >= minZ && visual.pos.z < maxZ) {
@@ -572,30 +492,6 @@ class Game {
                     if (f.progress < 0) f.progress = 0;
                 }
             }
-        }
-    }
-
-    _addDoor(x, y, z) {
-        // Skip if this is the top half of a door (only generate visual for the bottom block)
-        if (this.world.getBlock(x, y - 1, z) === window.BLOCKS.DUNGEON_DOOR) return;
-
-        const key = `${x},${y},${z}`;
-        if (!this.doorVisuals.has(key)) {
-            // Check adjacent blocks to determine orientation
-            const nx = this.world.getBlock(x - 1, y, z);
-            const px = this.world.getBlock(x + 1, y, z);
-            const nz = this.world.getBlock(x, y, z - 1);
-            const pz = this.world.getBlock(x, y, z + 1);
-
-            const blockedZ = (nz !== window.BLOCKS.AIR && nz !== window.BLOCKS.DUNGEON_DOOR) || 
-                             (pz !== window.BLOCKS.AIR && pz !== window.BLOCKS.DUNGEON_DOOR);
-            const blockedX = (nx !== window.BLOCKS.AIR && nx !== window.BLOCKS.DUNGEON_DOOR) || 
-                             (px !== window.BLOCKS.AIR && px !== window.BLOCKS.DUNGEON_DOOR);
-            
-            const alignZ = blockedZ && !blockedX;
-
-            const visual = new DoorVisual(this.engine.scene, x, y, z, this.atlas, alignZ);
-            this.doorVisuals.set(key, visual);
         }
     }
 
@@ -887,25 +783,18 @@ class Game {
                 this.input.mouse.rightClick = false;
                 return;
             }
-
             if (hit.hit && hit.blockType === window.BLOCKS.DUNGEON_DOOR) {
-                // Toggle Door
                 this.audio.playClick();
-                const key = `${hit.blockPos.x},${hit.blockPos.y},${hit.blockPos.z}`;
-                let visual = this.doorVisuals.get(key);
-                
-                // If we didn't hit the bottom of the door, search vertically for the visual we clicked on
-                if (!visual) {
-                    const keyBelow = `${hit.blockPos.x},${hit.blockPos.y - 1},${hit.blockPos.z}`;
-                    visual = this.doorVisuals.get(keyBelow);
+                if (this.ui.toggleDungeonMenu) {
+                    this.ui.toggleDungeonMenu(() => {
+                        this.input.requestPointerLock();
+                    });
+                    document.exitPointerLock();
+                    this.input.mouse.rightClick = false;
                 }
-                
-                if (visual) {
-                    visual.isOpen = !visual.isOpen;
-                }
-                this.input.mouse.rightClick = false;
                 return;
             }
+
             if (hit.hit && hit.blockType === window.BLOCKS.BOOKSHELF) {
                 // Restore Mana
                 if (this.player.mana < this.player.maxMana) {
@@ -1094,10 +983,7 @@ class Game {
             visual.update(dt);
         }
 
-        // Update door visuals
-        for (const [key, visual] of this.doorVisuals.entries()) {
-            visual.update(dt);
-        }
+
 
         const _tempVec3 = new THREE.Vector3();
         

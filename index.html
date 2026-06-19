@@ -149,6 +149,14 @@
                 </div>
             </div>
 
+            <!-- Dungeon Menu Panel -->
+            <div class="crafting-col hidden" id="dungeon-menu-panel" style="margin-top: 20px; text-align: center;">
+                <div style="color: white; font-weight: bold; font-size: 1.2rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 2px;">Dungeon Entrance</div>
+                <p style="color: rgba(255,255,255,0.7); margin-bottom: 20px;">Beyond this door lies a dangerous dungeon.<br/>Do you wish to enter?</p>
+                <button onclick="document.getElementById('dungeon-menu-panel').classList.add('hidden'); document.exitPointerLock();" style="padding: 10px 20px; background: rgba(255,50,50,0.8); border: 2px solid white; color: white; cursor: pointer; font-weight: bold; border-radius: 4px;">Enter Dungeon</button>
+                <button onclick="document.getElementById('dungeon-menu-panel').classList.add('hidden'); document.exitPointerLock();" style="padding: 10px 20px; background: rgba(100,100,100,0.8); border: 2px solid white; color: white; cursor: pointer; font-weight: bold; border-radius: 4px; margin-left: 10px;">Leave</button>
+            </div>
+
 
             <!-- Furnace Panel -->
             <div class="crafting-col hidden" id="furnace-panel" style="margin-top: 20px;">

@@ -614,17 +614,26 @@ function generateBlockTexture(ctx, blockType, face, rng) {
             ctx.fillStyle = 'rgba(15,15,20,0.6)'; ctx.fillRect(0,0,TEX_SIZE,1); ctx.fillRect(0,8,TEX_SIZE,1); ctx.fillRect(0,0,1,TEX_SIZE); ctx.fillRect(8,0,1,TEX_SIZE);
             break;
         case BLOCKS.DUNGEON_DOOR:
-            fillBase(ctx, 70, 50, 30);
-            addNoise(ctx, rng, 5);
-            ctx.fillStyle = 'rgba(40, 25, 10, 0.8)'; // Frame
+            fillBase(ctx, 40, 40, 45); // Dark stone base
+            addNoise(ctx, rng, 8);
+            
+            // Outer stone border
+            ctx.fillStyle = 'rgba(20, 20, 25, 0.8)';
             ctx.fillRect(0, 0, TEX_SIZE, 2);
             ctx.fillRect(0, 0, 2, TEX_SIZE);
             ctx.fillRect(TEX_SIZE - 2, 0, 2, TEX_SIZE);
             ctx.fillRect(0, TEX_SIZE - 2, TEX_SIZE, 2);
-            // Iron bands
-            ctx.fillStyle = 'rgba(30,30,30,0.9)';
-            ctx.fillRect(0, 4, TEX_SIZE, 2);
-            ctx.fillRect(0, 10, TEX_SIZE, 2);
+            
+            // Glowing magical runes / seal
+            ctx.fillStyle = 'rgba(255, 50, 50, 0.6)';
+            ctx.fillRect(6, 6, 4, 4);
+            ctx.fillStyle = 'rgba(255, 100, 100, 0.8)';
+            ctx.fillRect(7, 7, 2, 2);
+            
+            // Crossbars
+            ctx.fillStyle = 'rgba(15, 15, 20, 0.9)';
+            ctx.fillRect(0, 7, TEX_SIZE, 2);
+            ctx.fillRect(7, 0, 2, TEX_SIZE);
             break;
         case BLOCKS.BOSS_SPAWNER:
             ctx.clearRect(0,0,TEX_SIZE,TEX_SIZE); // Invisible
