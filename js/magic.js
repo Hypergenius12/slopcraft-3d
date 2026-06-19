@@ -110,7 +110,11 @@ export class Wand {
         if (!spellItem || this.cooldowns[index] > 0) return null;
         
         // Unwrap spell if it is an Item object
-        const spell = (spellItem.type === 'spell' && spellItem.data && spellItem.data.spell) ? spellItem.data.spell : spellItem;
+        let spell = spellItem;
+        if (spellItem.type === 'spell' && spellItem.data && spellItem.data.spell) spell = spellItem.data.spell;
+        else if (spellItem.item && spellItem.item.type === 'spell' && spellItem.item.data && spellItem.item.data.spell) spell = spellItem.item.data.spell;
+        
+        if (typeof spell.getCalculatedStats !== 'function') return null;
 
         const stats = spell.getCalculatedStats();
         if (!player.useMana(stats.manaCost)) return null;

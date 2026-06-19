@@ -760,9 +760,13 @@ class UISystem {
                         else sList[srcIndex] = itemData;
                     }
                 } else {
-                    if (this.dragState.isSplit) sList[srcIndex].count += itemData.count; // Return half to source if swapping
-                    else sList[srcIndex] = targetSlot;
-                    tList[targetIndex] = itemData;
+                    // Swap
+                    if (this.dragState.isSplit) {
+                        sList[srcIndex].count += itemData.count; // Return half to source if swapping
+                    } else {
+                        sList[srcIndex] = targetSlot;
+                        tList[targetIndex] = itemData;
+                    }
                 }
             }
         } else if (srcType === 'furnace' || targetType === 'furnace') {
@@ -791,9 +795,12 @@ class UISystem {
                         else inv[srcIndex] = itemData;
                     }
                 } else {
-                    setFurnaceSlot(targetIndex, itemData);
-                    if (this.dragState.isSplit) inv[srcIndex].count += itemData.count;
-                    else inv[srcIndex] = targetSlot;
+                    if (this.dragState.isSplit) {
+                        inv[srcIndex].count += itemData.count;
+                    } else {
+                        setFurnaceSlot(targetIndex, itemData);
+                        inv[srcIndex] = targetSlot;
+                    }
                 }
             } else if (srcType === 'furnace' && targetType === 'inventory') {
                 const targetSlot = inv[targetIndex];
@@ -806,15 +813,21 @@ class UISystem {
                         else setFurnaceSlot(srcIndex, itemData);
                     }
                 } else {
-                    inv[targetIndex] = itemData;
-                    if (this.dragState.isSplit) getFurnaceSlot(srcIndex).count += itemData.count;
-                    else setFurnaceSlot(srcIndex, targetSlot);
+                    if (this.dragState.isSplit) {
+                        getFurnaceSlot(srcIndex).count += itemData.count;
+                    } else {
+                        inv[targetIndex] = itemData;
+                        setFurnaceSlot(srcIndex, targetSlot);
+                    }
                 }
             } else if (srcType === 'furnace' && targetType === 'furnace') {
                 const targetSlot = getFurnaceSlot(targetIndex);
-                setFurnaceSlot(targetIndex, itemData);
-                if (this.dragState.isSplit) getFurnaceSlot(srcIndex).count += itemData.count;
-                else setFurnaceSlot(srcIndex, targetSlot);
+                if (this.dragState.isSplit) {
+                    getFurnaceSlot(srcIndex).count += itemData.count;
+                } else {
+                    setFurnaceSlot(targetIndex, itemData);
+                    setFurnaceSlot(srcIndex, targetSlot);
+                }
             }
         }
 
