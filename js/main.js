@@ -943,8 +943,6 @@ class Game {
         if (this.world.getBlock(pbx, pby, pbz) === BLOCKS.PORTAL && !this.isWarping) {
             this.warpToNewPlanet();
         }
-
-        this.engine.update(dt);
         
         const chunkGenFn = this.currentDimension === 'nether' ? generateNetherChunk : generateChunkTerrain;
         this.world.update(this.player.position, (cx, cz) => chunkGenFn(cx, cz, this.planetParams), dt);
