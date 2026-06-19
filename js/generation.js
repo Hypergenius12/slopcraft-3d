@@ -858,15 +858,14 @@ export function generatePortalStructure(blocks, x, y, z, rng) {
             
             if (px === x || px === x + 3 || py === y || py === y + 4) {
                 safeSetBlock(blocks, px, py, z, rng() < 0.2 ? BLOCKS.OBSIDIAN : BLOCKS.PORTAL_FRAME);
-            } else {
-                if (rng() < 0.4) safeSetBlock(blocks, px, py, z, BLOCKS.PORTAL);
             }
+            // NO PORTAL blocks here anymore!
         }
     }
     // Netherrack base
     for (let px = x - 1; px < x + 5; px++) {
         for (let pz = z - 2; pz < z + 3; pz++) {
-            if (rng() < 0.6) safeSetBlock(blocks, px, y - 1, pz, BLOCKS.ALIEN_STONE); // Use alien stone as netherrack proxy
+            if (rng() < 0.6) safeSetBlock(blocks, px, y - 1, pz, BLOCKS.NETHERRACK);
         }
     }
 }
@@ -904,6 +903,191 @@ export function generateCabin(blocks, x, y, z, rng) {
     for (let px = x - 1; px <= x + 1; px++) {
         for (let pz = z - 1; pz <= z + 1; pz++) {
             safeSetBlock(blocks, px, y - 1, pz, BLOCKS.PLANKS);
+        }
+    }
+}
+
+export function generateNetherFortress(blocks, x, y, z, rng) {
+    // Generate a simple nether fortress bridge/tower
+    const height = 15;
+    const width = 5;
+    const length = 15;
+
+    // Bridge
+    for (let px = x - width; px <= x + width; px++) {
+        for (let pz = z - length; pz <= z + length; pz++) {
+            for (let py = y - 3; py <= y + 5; py++) {
+                if (py === y - 3 || py === y - 2 || py === y - 1) {
+                    safeSetBlock(blocks, px, py, pz, BLOCKS.NETHER_BRICKS); // Floor/base
+                } else if (py === y) {
+                    safeSetBlock(blocks, px, py, pz, BLOCKS.AIR); // Walkway
+                } else if ((px === x - width || px === x + width) && py > y) {
+                    // Walls
+                    if (py === y + 1 || (py === y + 2 && (px+pz)%2 === 0)) {
+                        safeSetBlock(blocks, px, py, pz, BLOCKS.NETHER_BRICKS);
+                    } else {
+                        safeSetBlock(blocks, px, py, pz, BLOCKS.AIR);
+                    }
+                } else {
+                    safeSetBlock(blocks, px, py, pz, BLOCKS.AIR);
+                }
+            }
+        }
+    }
+
+    // Supports (pillars down to lava)
+    for (let pz = z - length + 2; pz <= z + length - 2; pz += 6) {
+        for (let py = y - 4; py >= 1; py--) {
+            safeSetBlock(blocks, x - width, py, pz, BLOCKS.NETHER_BRICKS);
+            safeSetBlock(blocks, x - width + 1, py, pz, BLOCKS.NETHER_BRICKS);
+            safeSetBlock(blocks, x + width, py, pz, BLOCKS.NETHER_BRICKS);
+            safeSetBlock(blocks, x + width - 1, py, pz, BLOCKS.NETHER_BRICKS);
+        }
+    }
+}
+
+export function generateNetherChunk(cx, cz, params) {
+    const blocks = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT);
+    const rng = seededRandom(params.seed + cx * 314159 + cz);
+
+    const seaLevel = 32;
+
+    for (let x = 0; x < CHUNK_SIZE; x++) {
+        for (let z = 0; z < CHUNK_SIZE; z++) {
+            const wx = cx * CHUNK_SIZE + x;
+            const wz = cz * CHUNK_SIZE + z;
+
+            // Determine Nether biome using temp and moist noise
+            const temp = (params.tempNoise(wx * 0.002, wz * 0.002) + 1) / 2;
+            const moist = (params.moistNoise(wx * 0.002, wz * 0.002) + 1) / 2;
+            
+            let biome = 'NETHER_WASTES';
+            let floorBlock = BLOCKS.NETHERRACK;
+            if (temp > 0.6) {
+                biome = 'CRIMSON_FOREST';
+                floorBlock = BLOCKS.CRIMSON_NYLIUM;
+            } else if (moist < 0.4) {
+                biome = 'SOUL_SAND_VALLEY';
+                floorBlock = BLOCKS.SOUL_SAND;
+            }
+
+            const colRng = seededRandom(params.seed + wx * 1234 + wz);
+
+            for (let y = 0; y < CHUNK_HEIGHT; y++) {
+                const idx = (y * CHUNK_SIZE * CHUNK_SIZE) + (z * CHUNK_SIZE) + x;
+
+                if (y === 0 || y === CHUNK_HEIGHT - 1) {
+                    blocks[idx] = BLOCKS.BEDROCK;
+                    continue;
+                }
+
+                // Carve caves
+                // Base solid block is netherrack
+                let isSolid = true;
+                
+                // We use 3D noise to create large caverns.
+                const nval = fbm3D(params.caveNoise, wx * 0.02, y * 0.03, wz * 0.02, 3);
+                
+                // nval ranges roughly -1 to 1. 
+                // We want large open caves, especially in the middle Y ranges.
+                // Distance from center Y
+                const midY = CHUNK_HEIGHT / 2;
+                const distFromMid = Math.abs(y - midY) / (CHUNK_HEIGHT / 2); // 0 at center, 1 at edges
+                
+                // More solid near top and bottom, more open in middle.
+                const threshold = -0.1 + (distFromMid * 0.4); 
+
+                if (nval > threshold) {
+                    isSolid = false; // Air/Cave
+                }
+
+                if (isSolid) {
+                    // Floor block or just Netherrack?
+                    // We need to know if this is the "surface" of a cave floor.
+                    // We'll approximate: if the block above is not solid (computed cheaply here, or we do a second pass).
+                    // Actually, a simpler way is just to make all solid blocks Netherrack/Soul sand.
+                    blocks[idx] = (biome === 'SOUL_SAND_VALLEY') ? BLOCKS.SOUL_SAND : BLOCKS.NETHERRACK;
+                } else if (y <= seaLevel) {
+                    blocks[idx] = BLOCKS.LAVA;
+                } else {
+                    blocks[idx] = BLOCKS.AIR;
+                }
+            }
+
+            // Second pass for this column to apply floor/ceiling decorations
+            let topSolidY = -1;
+            for (let y = CHUNK_HEIGHT - 2; y >= 1; y--) {
+                const idx = (y * CHUNK_SIZE * CHUNK_SIZE) + (z * CHUNK_SIZE) + x;
+                const idxAbove = ((y + 1) * CHUNK_SIZE * CHUNK_SIZE) + (z * CHUNK_SIZE) + x;
+                const idxBelow = ((y - 1) * CHUNK_SIZE * CHUNK_SIZE) + (z * CHUNK_SIZE) + x;
+
+                const b = blocks[idx];
+                const above = y < CHUNK_HEIGHT - 1 ? blocks[idxAbove] : BLOCKS.BEDROCK;
+                const below = y > 0 ? blocks[idxBelow] : BLOCKS.BEDROCK;
+
+                // If this is a floor block (air above)
+                if (b !== BLOCKS.AIR && b !== BLOCKS.LAVA && above === BLOCKS.AIR) {
+                    topSolidY = y;
+                    
+                    // Apply floor biome blocks
+                    if (biome === 'CRIMSON_FOREST' && b === BLOCKS.NETHERRACK) {
+                        blocks[idx] = BLOCKS.CRIMSON_NYLIUM;
+                        // Trees
+                        if (colRng() < 0.02) {
+                            generateCrimsonTree(blocks, x, y + 1, z, rng);
+                        } else if (colRng() < 0.1) {
+                            // Grass/Fungi (we can use alien grass as a placeholder or crimson roots if we had it)
+                            safeSetBlock(blocks, x, y + 1, z, BLOCKS.MUSHROOM_STEM, true);
+                        }
+                    } else if (biome === 'SOUL_SAND_VALLEY') {
+                        blocks[idx] = BLOCKS.SOUL_SAND;
+                        if (colRng() < 0.05) {
+                            // Soul fire proxy
+                            safeSetBlock(blocks, x, y + 1, z, BLOCKS.TORCH, true); 
+                        }
+                    }
+
+                    // Occasional Nether Quartz (Crystal Ore proxy) or Gold
+                    if (colRng() < 0.05) blocks[idx] = BLOCKS.CRYSTAL_ORE;
+                    if (colRng() < 0.02) blocks[idx] = BLOCKS.GOLD_ORE;
+                }
+
+                // If this is a ceiling block (air below)
+                if (b !== BLOCKS.AIR && b !== BLOCKS.LAVA && below === BLOCKS.AIR) {
+                    if (colRng() < 0.02) {
+                        // Glowstone clusters
+                        safeSetBlock(blocks, x, y - 1, z, BLOCKS.GLOWSTONE, true);
+                        if (colRng() < 0.5) safeSetBlock(blocks, x, y - 2, z, BLOCKS.GLOWSTONE, true);
+                    }
+                }
+            }
+        }
+    }
+
+    // Nether Fortress generation
+    if (rng() < 0.02) {
+        // Find a suitable Y
+        // We just plop it around Y=35 (just above lava)
+        const fx = Math.floor(rng() * CHUNK_SIZE);
+        const fz = Math.floor(rng() * CHUNK_SIZE);
+        generateNetherFortress(blocks, fx, 35, fz, rng);
+    }
+
+    return blocks;
+}
+
+function generateCrimsonTree(blocks, x, y, z, rng) {
+    const h = 4 + Math.floor(rng() * 4);
+    for (let py = y; py < y + h; py++) {
+        safeSetBlock(blocks, x, py, z, BLOCKS.CRIMSON_STEM, true);
+    }
+    // Leaves canopy
+    for (let px = x - 2; px <= x + 2; px++) {
+        for (let pz = z - 2; pz <= z + 2; pz++) {
+            for (let py = y + h - 2; py <= y + h + 1; py++) {
+                if (Math.abs(px - x) === 2 && Math.abs(pz - z) === 2 && py === y + h + 1) continue;
+                safeSetBlock(blocks, px, py, pz, BLOCKS.CRIMSON_LEAVES, true);
+            }
         }
     }
 }

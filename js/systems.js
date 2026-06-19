@@ -1143,6 +1143,9 @@ class UISystem {
         if (getCount('gold_ingot') === 4) return block(B.GOLD_BLOCK, 'Gold Block', 1);
         if (getCount('diamond') === 4) return block(B.DIAMOND_BLOCK, 'Diamond Block', 1);
         
+        // Tools/Misc
+        if (getCount('iron_ingot') === 1 && getCount(B.SAND) === 1 && totalItems === 2) return mat('flint_and_steel', 'Flint and Steel', 1);
+        
         // Reverse Storage
         if (getCount(B.IRON_BLOCK) === 1 && totalItems === 1) return mat('iron_ingot', 'Iron Ingot', 4);
         if (getCount(B.GOLD_BLOCK) === 1 && totalItems === 1) return mat('gold_ingot', 'Gold Ingot', 4);
@@ -1193,6 +1196,7 @@ class UISystem {
             { result: "Leggings (Iron/Gold/Diamond)", ingredients: "3 Material (U-shape)" },
             { result: "Boots (Iron/Gold/Diamond)", ingredients: "2 Material (Vertical)" },
             { result: "Basic Wand", ingredients: "1 Stick, 1 Iron Ingot" },
+            { result: "Flint and Steel", ingredients: "1 Iron Ingot, 1 Flint" },
             { result: "Fire Wand", ingredients: "1 Basic Wand, 1 Coal" },
             { result: "Ice Wand", ingredients: "1 Basic Wand, 1 Snow" },
             { result: "Nature Wand", ingredients: "1 Basic Wand, 1 Leaves" },

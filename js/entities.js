@@ -445,6 +445,77 @@ export const MOB_TYPES = {
             mesh.children[3].position.y = 0.25 + Math.max(0, bounce);
         }
     },
+    LAVASLIME: {
+        name: 'Lava Slime', health: 30, damage: 8, speed: 2, hostile: true, color: 0xcc4400,
+        size: 0.7, xpDrop: 8, lootChance: 0.4,
+        buildMesh: () => {
+            const group = new THREE.Group();
+            const body = createBodyPart(new THREE.BoxGeometry(0.7, 0.7, 0.7), 0xcc4400, 0xff8800, 0.1);
+            body.position.y = 0.35;
+            body.material.transparent = true;
+            body.material.opacity = 0.8;
+            group.add(body);
+            // Core
+            const core = createBodyPart(new THREE.BoxGeometry(0.3, 0.3, 0.3), 0xffff00);
+            core.position.y = 0.35;
+            group.add(core);
+            return group;
+        },
+        animate: (mesh, dt, age, isMoving) => {
+            const bounce = Math.sin(age * 6) * 0.15;
+            const squish = 1 + Math.sin(age * 6) * 0.15;
+            mesh.children[0].scale.set(squish, 1.0 / squish, squish);
+            mesh.children[0].position.y = 0.35 + Math.max(0, bounce);
+            mesh.children[1].position.y = 0.35 + Math.max(0, bounce);
+        }
+    },
+    PIGLIN_BRUISER: {
+        name: 'Piglin Bruiser', health: 50, damage: 12, speed: 3.5, hostile: true, color: 0xffaaaa,
+        size: 0.9, xpDrop: 15, lootChance: 0.6,
+        buildMesh: () => {
+            const group = new THREE.Group();
+            const body = createBodyPart(new THREE.BoxGeometry(0.5, 0.6, 0.3), 0x442222); // Dark armor
+            body.position.y = 0.7;
+            group.add(body);
+            const head = createBodyPart(new THREE.BoxGeometry(0.4, 0.4, 0.4), 0xffaaaa);
+            head.position.y = 1.2;
+            head.position.z = 0.1;
+            group.add(head);
+            // Snout
+            const snout = createBodyPart(new THREE.BoxGeometry(0.2, 0.15, 0.1), 0xff8888);
+            snout.position.set(0, 1.1, 0.35);
+            group.add(snout);
+            const armGeo = new THREE.BoxGeometry(0.15, 0.5, 0.15);
+            const lArm = createBodyPart(armGeo, 0xffaaaa);
+            lArm.position.set(-0.35, 0.7, 0);
+            group.add(lArm);
+            const rArm = createBodyPart(armGeo, 0xffaaaa);
+            rArm.position.set(0.35, 0.7, 0);
+            group.add(rArm);
+            const legGeo = new THREE.BoxGeometry(0.15, 0.4, 0.15);
+            const lLeg = createBodyPart(legGeo, 0x221111);
+            lLeg.position.set(-0.15, 0.2, 0);
+            group.add(lLeg);
+            const rLeg = createBodyPart(legGeo, 0x221111);
+            rLeg.position.set(0.15, 0.2, 0);
+            group.add(rLeg);
+            return group;
+        },
+        animate: (mesh, dt, age, isMoving) => {
+            if (!isMoving) {
+                mesh.children[3].rotation.x = 0;
+                mesh.children[4].rotation.x = 0;
+                mesh.children[5].rotation.x = 0;
+                mesh.children[6].rotation.x = 0;
+            } else {
+                const swing = Math.sin(age * 10) * 0.5;
+                mesh.children[3].rotation.x = swing;
+                mesh.children[4].rotation.x = -swing;
+                mesh.children[5].rotation.x = -swing;
+                mesh.children[6].rotation.x = swing;
+            }
+        }
+    },
     GOBLIN: {
         name: 'Goblin', health: 25, damage: 6, speed: 4, hostile: true, color: 0x448844,
         size: 0.8, xpDrop: 10, lootChance: 0.5,
@@ -1136,7 +1207,11 @@ const MOB_SPAWN_WEIGHTS = [
 ];
 const TOTAL_MOB_WEIGHT = MOB_SPAWN_WEIGHTS.reduce((s, e) => s + e.weight, 0);
 
-function pickRandomMobType() {
+function pickRandomMobType(isNether = false) {
+    if (isNether) {
+        return Math.random() < 0.5 ? 'LAVASLIME' : 'PIGLIN_BRUISER';
+    }
+
     let r = Math.random() * TOTAL_MOB_WEIGHT;
     for (const entry of MOB_SPAWN_WEIGHTS) {
         r -= entry.weight;
@@ -1630,7 +1705,7 @@ export class EntityManager {
         this.scene.add(iEntity.getMesh());
     }
 
-    update(dt, world, playerPos, playerInventory, player, timeOfDay = 0.5) {
+    update(dt, world, playerPos, playerInventory, player, timeOfDay = 0.5, currentDimension = 'overworld') {
         // Day: 0.25 to 0.75. Night: 0.75-1.0 and 0.0-0.25
         const isDay = timeOfDay >= 0.25 && timeOfDay <= 0.75;
         // Boss spawner detection
@@ -1678,16 +1753,16 @@ export class EntityManager {
                             const aquatic = ['TROPICAL_FISH', 'SALMON', 'PUFFERFISH', 'TURTLE'];
                             type = aquatic[Math.floor(Math.random() * aquatic.length)];
                         } else {
-                            type = pickRandomMobType();
+                            type = pickRandomMobType(currentDimension === 'nether');
                             while(MOB_TYPES[type].waterOnly) {
-                                type = pickRandomMobType();
+                                type = pickRandomMobType(currentDimension === 'nether');
                             }
                         }
-                // Only allow hostile surface spawns at night
+                // Only allow hostile surface spawns at night (except in Nether)
                         const config = MOB_TYPES[type];
                         // Check if mob is hostile by checking if it has damage
                         const isHostile = (config.damage || 0) > 0;
-                        if (isHostile && isDay && !config.flying && !config.waterOnly) break; // Skip surface hostiles during day
+                        if (isHostile && isDay && !config.flying && !config.waterOnly && currentDimension !== 'nether') break; // Skip surface hostiles during day
 
                         let spawnY = y + 2;
                         if (config.flying) spawnY = y + 5 + Math.random() * 10;

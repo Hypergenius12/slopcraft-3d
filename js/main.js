@@ -4,15 +4,15 @@
 import * as THREE from 'three';
 import { GameEngine, InputManager, CHUNK_SIZE, CHUNK_HEIGHT, World } from './engine.js';
 import { createTextureAtlas, getBlockProperties, getBlockName, BLOCKS } from './textures.js';
-import { generatePlanetParams, generateChunkTerrain } from './generation.js';
+import { generatePlanetParams, generateChunkTerrain, generateNetherChunk } from './generation.js';
 import { Player, EntityManager, Mob, MOB_TYPES, Item } from './entities.js';
 import { LightingSystem, ParticleSystem, UISystem, TorchLightSystem, CloudSystem, MeteorShowerSystem } from './systems.js';
 import { ProjectileManager, SpellProjectile } from './magic.js';
 import { AudioManager } from './audio.js';
 
 // Helper: find safe spawn location
-function findSafeSpawn(params) {
-    const centerBlocks = generateChunkTerrain(0, 0, params);
+function findSafeSpawn(params, isNether = false) {
+    const centerBlocks = isNether ? generateNetherChunk(0, 0, params) : generateChunkTerrain(0, 0, params);
 
     // Search spiral from center to find a solid block that isn't under liquid
     const searchRadius = Math.floor(CHUNK_SIZE / 2);
@@ -198,6 +198,8 @@ class Game {
         this.worldSeed = rawSeed;
 
         // Planet Generation
+        this.currentSeed = rawSeed;
+        this.currentDimension = 'overworld'; // 'overworld' or 'nether'
         this.planetParams = generatePlanetParams(rawSeed);
         this.world = new World(this.engine.scene, this.atlas);
 
@@ -846,6 +848,16 @@ class Game {
         if (this.input.mouse.rightClick) {
             const slot = this.player.inventory.slots[this.player.selectedSlot];
 
+            if (slot && slot.item.subtype === 'flint_and_steel' && hit.hit) {
+                // If clicked on Obsidian, try to light a portal
+                if (hit.blockType === window.BLOCKS.OBSIDIAN) {
+                    this.tryLightPortal(hit.blockPos.x, hit.blockPos.y, hit.blockPos.z);
+                    this.audio.playHit();
+                }
+                this.input.mouse.rightClick = false;
+                return;
+            }
+
             if (hit.hit && hit.blockType === window.BLOCKS.CHEST_BLOCK) {
                 // Open Chest
                 this.audio.playClick(); // Or a specific chest open sound
@@ -1043,10 +1055,12 @@ class Game {
             this.warpToNewPlanet();
         }
 
-        // Update World (Chunks)
-        this.world.update(this.player.position, (cx, cz) => generateChunkTerrain(cx, cz, this.planetParams), dt);
+        this.engine.update(dt);
+        
+        const chunkGenFn = this.currentDimension === 'nether' ? generateNetherChunk : generateChunkTerrain;
+        this.world.update(this.player.position, (cx, cz) => chunkGenFn(cx, cz, this.planetParams), dt);
 
-        this._updateFurnaces(dt);
+        this.input.update(dt);
 
         // Update Systems
         const headX = Math.floor(this.engine.camera.position.x);
@@ -1074,7 +1088,7 @@ class Game {
         }
         this.particles.update(dt);
         this.cloudSystem.update(dt, this.engine.camera.position);
-        this.entityManager.update(dt, this.world, this.player.position, this.player.inventory, this.player, this.lighting.timeOfDay);
+        this.entityManager.update(dt, this.world, this.player.position, this.player.inventory, this.player, this.lighting.timeOfDay, this.currentDimension);
 
         for (let visual of this.chestVisuals.values()) {
             visual.update(dt);
@@ -1269,12 +1283,14 @@ Chunks: ${this.world.chunks.size} | Mobs: ${this.entityManager.mobs.length} | Re
         this.isWarping = true;
         this.audio.playCast();
 
+        const warpToNether = this.currentDimension !== 'nether';
+
         // Simple screen fade
         const fade = document.createElement('div');
         fade.style.position = 'fixed';
         fade.style.top = '0'; fade.style.left = '0';
         fade.style.width = '100%'; fade.style.height = '100%';
-        fade.style.backgroundColor = 'white';
+        fade.style.backgroundColor = warpToNether ? '#400000' : 'white';
         fade.style.opacity = '0';
         fade.style.transition = 'opacity 1.5s ease-in-out';
         fade.style.zIndex = '9999';
@@ -1284,9 +1300,12 @@ Chunks: ${this.world.chunks.size} | Mobs: ${this.entityManager.mobs.length} | Re
         setTimeout(() => { fade.style.opacity = '1'; }, 50);
 
         setTimeout(() => {
-            // New Seed
-            this.currentSeed = Math.floor(Math.random() * 1000000);
+            if (!warpToNether) {
+                // New Seed only when returning to overworld (or keep it if you want)
+                this.currentSeed = Math.floor(Math.random() * 1000000);
+            }
             this.planetParams = generatePlanetParams(this.currentSeed);
+            this.currentDimension = warpToNether ? 'nether' : 'overworld';
 
             // Clear World
             for (const chunk of this.world.chunks.values()) {
@@ -1303,7 +1322,7 @@ Chunks: ${this.world.chunks.size} | Mobs: ${this.entityManager.mobs.length} | Re
             this.entityManager.items = [];
 
             // Reset Player
-            const spawnPos = findSafeSpawn(this.planetParams);
+            const spawnPos = findSafeSpawn(this.planetParams, warpToNether);
             this.player.position.set(spawnPos.x, spawnPos.y, spawnPos.z);
             this.player.velocity.set(0, 0, 0);
 
@@ -1318,6 +1337,74 @@ Chunks: ${this.world.chunks.size} | Mobs: ${this.entityManager.mobs.length} | Re
             }, 1500);
 
         }, 1500);
+    }
+
+    tryLightPortal(startX, startY, startZ) {
+        // Find bottom-left corner of the portal inside
+        // A simple flood fill or pattern match.
+        // For our 4x5 portal frame, the inside is 2x3.
+        
+        const frameBlocks = [window.BLOCKS.OBSIDIAN, window.BLOCKS.PORTAL_FRAME];
+        
+        // Scan around the click to find a suitable 2x3 air/empty space surrounded by frame blocks
+        let foundPortal = false;
+        
+        for (let xOffset = -3; xOffset <= 3; xOffset++) {
+            for (let yOffset = -4; yOffset <= 4; yOffset++) {
+                const px = startX + xOffset;
+                const py = startY + yOffset;
+                const pz = startZ;
+                
+                // Check if this could be the bottom-left inside block of the portal
+                let isValidFrame = true;
+                
+                // Check the 2x3 inside is empty
+                for (let ix = 0; ix < 2; ix++) {
+                    for (let iy = 0; iy < 3; iy++) {
+                        const b = this.world.getBlock(px + ix, py + iy, pz);
+                        if (b !== window.BLOCKS.AIR) {
+                            isValidFrame = false;
+                            break;
+                        }
+                    }
+                    if (!isValidFrame) break;
+                }
+                
+                if (!isValidFrame) continue;
+                
+                // Check the border around the 2x3 is all frame blocks
+                // Bottom: (px, py-1), (px+1, py-1)
+                // Top: (px, py+3), (px+1, py+3)
+                // Left: (px-1, py), (px-1, py+1), (px-1, py+2)
+                // Right: (px+2, py), (px+2, py+1), (px+2, py+2)
+                const borderOffsets = [
+                    [0, -1], [1, -1],   // Bottom
+                    [0, 3], [1, 3],     // Top
+                    [-1, 0], [-1, 1], [-1, 2], // Left
+                    [2, 0], [2, 1], [2, 2]     // Right
+                ];
+                
+                for (let o of borderOffsets) {
+                    const b = this.world.getBlock(px + o[0], py + o[1], pz);
+                    if (!frameBlocks.includes(b)) {
+                        isValidFrame = false;
+                        break;
+                    }
+                }
+                
+                if (isValidFrame) {
+                    // It's a valid portal frame!
+                    foundPortal = true;
+                    // Light it!
+                    for (let ix = 0; ix < 2; ix++) {
+                        for (let iy = 0; iy < 3; iy++) {
+                            this.world.setBlock(px + ix, py + iy, pz, window.BLOCKS.PORTAL);
+                        }
+                    }
+                    return;
+                }
+            }
+        }
     }
 }
 

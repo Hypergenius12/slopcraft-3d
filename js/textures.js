@@ -96,7 +96,14 @@ export const BLOCKS = {
     GOLD_BLOCK: 87,
     DIAMOND_BLOCK: 88,
     WOOL: 89,
-    FURNACE: 90
+    FURNACE: 90,
+    NETHERRACK: 91,
+    SOUL_SAND: 92,
+    NETHER_BRICKS: 93,
+    CRIMSON_NYLIUM: 94,
+    CRIMSON_STEM: 95,
+    CRIMSON_LEAVES: 96,
+    NETHER_WART_BLOCK: 97
 };
 
 // Block properties
@@ -191,7 +198,14 @@ const BLOCK_PROPS = {
     [BLOCKS.GOLD_BLOCK]:    { name: 'Gold Block',     health: 10, transparent: false, emissive: 0.1, solid: true, drops: null },
     [BLOCKS.DIAMOND_BLOCK]: { name: 'Diamond Block',  health: 12, transparent: false, emissive: 0.2, solid: true, drops: null },
     [BLOCKS.WOOL]:          { name: 'Wool',           health: 2, transparent: false, emissive: 0, solid: true, drops: null },
-    [BLOCKS.FURNACE]:       { name: 'Furnace',        health: 8, transparent: false, emissive: 0.1, solid: true, drops: null }
+    [BLOCKS.FURNACE]:       { name: 'Furnace',        health: 6, transparent: false, emissive: 0, solid: true, drops: null },
+    [BLOCKS.NETHERRACK]:    { name: 'Netherrack',     health: 3, transparent: false, emissive: 0, solid: true, drops: null },
+    [BLOCKS.SOUL_SAND]:     { name: 'Soul Sand',      health: 3, transparent: false, emissive: 0, solid: true, drops: null },
+    [BLOCKS.NETHER_BRICKS]: { name: 'Nether Bricks',  health: 12, transparent: false, emissive: 0, solid: true, drops: null },
+    [BLOCKS.CRIMSON_NYLIUM]:{ name: 'Crimson Nylium', health: 4, transparent: false, emissive: 0, solid: true, drops: 91 }, // drops netherrack
+    [BLOCKS.CRIMSON_STEM]:  { name: 'Crimson Stem',   health: 5, transparent: false, emissive: 0, solid: true, drops: null }, // Will make it drop custom wood in drops logic if needed
+    [BLOCKS.CRIMSON_LEAVES]:{ name: 'Crimson Leaves', health: 1, transparent: true, emissive: 0, solid: true, drops: null },
+    [BLOCKS.NETHER_WART_BLOCK]: { name: 'Nether Wart Block', health: 2, transparent: false, emissive: 0, solid: true, drops: null }
 };
 
 export function getBlockProperties(type) {
@@ -1271,6 +1285,78 @@ function generateBlockTexture(ctx, blockType, face, rng) {
                 }
             }
             break;
+        case BLOCKS.NETHERRACK:
+            fillBase(ctx, 110, 30, 30);
+            addNoise(ctx, rng, 20);
+            addPixels(ctx, rng, 'rgba(80, 20, 20, 0.8)', 30);
+            addPixels(ctx, rng, 'rgba(150, 40, 40, 0.6)', 30);
+            break;
+        case BLOCKS.SOUL_SAND:
+            fillBase(ctx, 80, 50, 40);
+            addNoise(ctx, rng, 15);
+            addPixels(ctx, rng, 'rgba(60, 30, 20, 0.8)', 40);
+            // Draw some "faces"
+            ctx.fillStyle = 'rgba(40, 20, 10, 0.8)';
+            for(let i=0; i<3; i++) {
+                let fx = Math.floor(rng() * 12);
+                let fy = Math.floor(rng() * 12);
+                ctx.fillRect(fx, fy, 1, 2);
+                ctx.fillRect(fx+2, fy, 1, 2);
+                ctx.fillRect(fx+1, fy+2, 1, 1);
+            }
+            break;
+        case BLOCKS.NETHER_BRICKS:
+            fillBase(ctx, 60, 20, 25);
+            drawBricks(ctx, rng, 'rgba(30, 10, 15, 0.9)', 5);
+            break;
+        case BLOCKS.CRIMSON_NYLIUM:
+            if (face === 'top') {
+                fillBase(ctx, 140, 20, 20);
+                addNoise(ctx, rng, 20);
+                addPixels(ctx, rng, 'rgba(180, 40, 40, 0.8)', 30);
+            } else if (face === 'bottom') {
+                fillBase(ctx, 110, 30, 30); // Netherrack
+                addNoise(ctx, rng, 20);
+            } else {
+                // Side
+                fillBase(ctx, 110, 30, 30); // Netherrack bottom
+                addNoise(ctx, rng, 20);
+                ctx.fillStyle = 'rgba(140, 20, 20, 0.9)'; // Nylium top
+                for(let x=0; x<TEX_SIZE; x++) {
+                    let h = 4 + Math.floor(rng() * 4);
+                    ctx.fillRect(x, 0, 1, h);
+                }
+            }
+            break;
+        case BLOCKS.CRIMSON_STEM:
+            if (face === 'top' || face === 'bottom') {
+                fillBase(ctx, 100, 30, 40);
+                // rings
+                ctx.strokeStyle = 'rgba(130, 40, 50, 0.8)';
+                ctx.beginPath();
+                ctx.arc(8, 8, 3, 0, Math.PI*2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(8, 8, 6, 0, Math.PI*2);
+                ctx.stroke();
+            } else {
+                fillBase(ctx, 80, 20, 30);
+                addStripes(ctx, rng, 'rgba(60, 15, 20, 0.6)', 'vertical', 6);
+                addNoise(ctx, rng, 10);
+            }
+            break;
+        case BLOCKS.CRIMSON_LEAVES:
+            ctx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
+            ctx.fillStyle = 'rgba(150, 0, 0, 0.9)';
+            for(let i=0; i<80; i++) {
+                ctx.fillRect(Math.floor(rng()*16), Math.floor(rng()*16), 2, 2);
+            }
+            break;
+        case BLOCKS.NETHER_WART_BLOCK:
+            fillBase(ctx, 110, 0, 0);
+            addNoise(ctx, rng, 25);
+            addPixels(ctx, rng, 'rgba(80, 0, 0, 0.8)', 40);
+            break;
         default:
             fillBase(ctx, 255, 0, 255);
             break;
@@ -1279,7 +1365,7 @@ function generateBlockTexture(ctx, blockType, face, rng) {
 function hasFaceVariants(blockType) {
     return [
         BLOCKS.GRASS, BLOCKS.WOOD, BLOCKS.MUSHROOM_STEM, BLOCKS.SAVANNA_GRASS, BLOCKS.ACACIA_WOOD, BLOCKS.SWAMP_GRASS, BLOCKS.ALIEN_GRASS, BLOCKS.PORTAL_FRAME, BLOCKS.CHERRY_LOG, BLOCKS.AUTUMN_WOOD, BLOCKS.PALM_WOOD,
-        BLOCKS.BOOKSHELF, BLOCKS.CHEST_BLOCK, BLOCKS.FURNACE
+        BLOCKS.BOOKSHELF, BLOCKS.CHEST_BLOCK, BLOCKS.FURNACE, BLOCKS.CRIMSON_NYLIUM, BLOCKS.CRIMSON_STEM
     ].includes(blockType);
 }
 
@@ -1717,6 +1803,47 @@ export function generateItemTexture(itemType, itemSubtype) {
                 "                ",
                 "                "
             ];
+        } else if (itemSubtype === 'flint_and_steel') {
+            shape = [
+                "                ",
+                "       OOOOO    ",
+                "      OHHCCD    ",
+                "     OHD  CD    ",
+                "    OHD   CD    ",
+                "   OHD    CD    ",
+                "   OD    CD     ",
+                "        CCO     ",
+                "  OO   CCO      ",
+                " OGBO CCO       ",
+                " OGBBCOO        ",
+                "  OGBBO         ",
+                "   OOO          ",
+                "                ",
+                "                ",
+                "                "
+            ];
+            // Override palette colors manually for flint and steel
+            ctx.fillStyle = '#666'; // For steel C
+            ctx.fillStyle = '#444'; // For steel D
+            ctx.fillStyle = '#333'; // For flint G
+            ctx.fillStyle = '#222'; // For flint B
+            // Just use the parser with a custom palette override
+            const fsPalette = { c: '#999', d: '#555', h: '#ccc', g: '#333', b: '#222' };
+            ctx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
+            for (let y = 0; y < 16; y++) {
+                for (let x = 0; x < 16; x++) {
+                    const char = shape[y][x];
+                    if (char === 'C') ctx.fillStyle = fsPalette.c;
+                    else if (char === 'D') ctx.fillStyle = fsPalette.d;
+                    else if (char === 'H') ctx.fillStyle = fsPalette.h;
+                    else if (char === 'G') ctx.fillStyle = fsPalette.g;
+                    else if (char === 'B') ctx.fillStyle = fsPalette.b;
+                    else if (char === 'O') ctx.fillStyle = '#000000';
+                    else continue;
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+            return canvas;
         } else if (itemSubtype === 'stick') {
             shape = [
                 "            OO  ",
