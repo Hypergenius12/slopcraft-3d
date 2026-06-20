@@ -250,7 +250,7 @@ export class Player {
 
         // Collision
         const velStep = this.velocity.clone().multiplyScalar(dt);
-        const colResult = world.collide(this.position, velStep, this.width, this.height);
+        const colResult = world.collide(this.position, velStep, this.width, this.height, keys.crouch && this.grounded);
         
         // Update state based on collision
         this.position.copy(colResult.position);

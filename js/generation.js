@@ -27,7 +27,8 @@ const BIOMES = {
     AUTUMN_FOREST: { name: 'Autumn Forest', surface: BLOCKS.GRASS, dirt: BLOCKS.DIRT, freq: 0.7, hasTrees: true, isAutumn: true },
     GLOW_FOREST: { name: 'Glow Forest', surface: BLOCKS.ALIEN_GRASS, dirt: BLOCKS.ALIEN_STONE, freq: 0.5, hasTrees: true, isGlow: true },
     OASIS: { name: 'Oasis', surface: BLOCKS.SAND, dirt: BLOCKS.SAND, freq: 0.2, hasTrees: true, isOasis: true },
-    CORAL_REEF: { name: 'Coral Reef', surface: BLOCKS.SAND, dirt: BLOCKS.SAND, freq: 0.3, hasTrees: false, isCoralReef: true }
+    CORAL_REEF: { name: 'Coral Reef', surface: BLOCKS.SAND, dirt: BLOCKS.SAND, freq: 0.3, hasTrees: false, isCoralReef: true },
+    DARK_FOREST: { name: 'Dark Forest', surface: BLOCKS.GRASS, dirt: BLOCKS.DIRT, freq: 0.8, hasTrees: true, isDark: true, hasMushrooms: true }
 };
 
 export class PlanetParams {
@@ -132,7 +133,9 @@ export function getBiomeParams(wx, wz, params) {
             else if (subNoise > 0.4) { biome = BIOMES.GLOW_FOREST; heightMult = 1.0; }
             else { biome = BIOMES.CRYSTAL; heightMult = 1.2; }
         } else {
-            biome = subNoise > 0.8 ? BIOMES.CHERRY_GROVE : BIOMES.FOREST;
+            if (subNoise > 0.8) biome = BIOMES.CHERRY_GROVE;
+            else if (subNoise < 0.2) biome = BIOMES.DARK_FOREST;
+            else biome = BIOMES.FOREST;
             heightMult = 1.1;
         }
     }
@@ -405,7 +408,7 @@ export function generateChunkTerrain(cx, cz, params) {
                 // We'll trust getColumnInfo for height, assume valid if not water.
                 const r = floraRng();
                 
-                if (biome.hasTrees && r < 0.02) {
+                if (biome.hasTrees && r < (biome.isDark ? 0.06 : 0.02)) {
                     generateTree(blocks, tx, surfaceY + 1, tz, biome, floraRng);
                 } else if (biome.hasMushrooms && r < 0.05) {
                     generateMushroom(blocks, tx, surfaceY + 1, tz, floraRng);
@@ -482,6 +485,7 @@ function generateTree(blocks, x, y, z, biome, rng) {
     const isPine = biome.name === 'Tundra' || biome.name === 'Ice Spikes' || biome.name === 'Mountains';
     const isJungle = biome.jungleFlora;
     const isCherry = biome.isCherry;
+    const isDark = biome.isDark;
     
     let trunkType = BLOCKS.WOOD;
     let leafType = BLOCKS.LEAVES;
@@ -493,6 +497,7 @@ function generateTree(blocks, x, y, z, biome, rng) {
     else if (biome.isGlow) { trunkType = BLOCKS.GLOW_STEM; leafType = BLOCKS.GLOW_LEAVES; }
     else if (biome.isOasis) { trunkType = BLOCKS.PALM_WOOD; leafType = BLOCKS.PALM_LEAVES; }
     else if (isPine) { trunkType = BLOCKS.PINE_WOOD; leafType = BLOCKS.PINE_LEAVES; }
+    else if (isDark) { trunkType = BLOCKS.WOOD; leafType = BLOCKS.PINE_LEAVES; }
     
     // Height generation
     let height = 4 + Math.floor(rng() * 3);
@@ -500,10 +505,11 @@ function generateTree(blocks, x, y, z, biome, rng) {
     else if (isPine) height = 10 + Math.floor(rng() * 6); // Taller pine trees (10-15 blocks)
     else if (isSavanna) height = 5 + Math.floor(rng() * 2);
     else if (isCherry) height = 5 + Math.floor(rng() * 2);
+    else if (isDark) height = 6 + Math.floor(rng() * 3);
 
     // Trunk generation
-    if (isJungle) {
-        // Massive 2x2 trunk for jungle
+    if (isJungle || isDark) {
+        // Massive 2x2 trunk for jungle and dark forest
         for (let i = 0; i < height; i++) {
             safeSetBlock(blocks, x, y + i, z, trunkType);
             safeSetBlock(blocks, x+1, y + i, z, trunkType);
@@ -561,14 +567,14 @@ function generateTree(blocks, x, y, z, biome, rng) {
             }
         }
     }
-    else if (isJungle) {
-        // Jungle canopy
+    else if (isJungle || isDark) {
+        // Thick canopy for 2x2 trunk
         for (let ly = y + height - 3; ly <= y + height + 1; ly++) {
-            const radius = ly > y + height - 1 ? 2 : 3; // Reduced from 5
+            const radius = ly > y + height - 1 ? 2 : (isDark ? 4 : 3); // Dark forest has wider canopy
             for (let lx = x - radius; lx <= x + radius + 1; lx++) {
                 for (let lz = z - radius; lz <= z + radius + 1; lz++) {
                     if (Math.abs(lx - x - 0.5) + Math.abs(lz - z - 0.5) > radius + 1) continue;
-                    if (rng() < 0.2) continue;
+                    if (rng() < (isDark ? 0.1 : 0.2)) continue; // Dark forest is denser
                     safeSetBlock(blocks, lx, ly, lz, leafType, true);
                 }
             }

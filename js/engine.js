@@ -651,6 +651,69 @@ export class World {
         if (chunk) chunk.setData(lx, wy, lz, dataValue);
     }
 
+    checkSupport(x, y, z) {
+        const type = this.getBlock(x, y, z);
+        if (type === window.BLOCKS.AIR) return;
+
+        let needsBreak = false;
+        const blockBelow = this.getBlock(x, y - 1, z);
+        
+        // Plant-like blocks need dirt/grass below
+        if ([window.BLOCKS.TALL_GRASS, window.BLOCKS.FLOWER_RED, window.BLOCKS.FLOWER_YELLOW, window.BLOCKS.FERN, window.BLOCKS.MUSHROOM_RED, window.BLOCKS.MUSHROOM_BROWN].includes(type)) {
+            if (![window.BLOCKS.GRASS, window.BLOCKS.DIRT, window.BLOCKS.MYCELIUM, window.BLOCKS.CRIMSON_NYLIUM, window.BLOCKS.PODZOL].includes(blockBelow)) {
+                needsBreak = true;
+            }
+        }
+        else if (type === window.BLOCKS.CACTUS) {
+            if (blockBelow !== window.BLOCKS.SAND && blockBelow !== window.BLOCKS.CACTUS && blockBelow !== window.BLOCKS.RED_SAND) needsBreak = true;
+        }
+        else if (type === window.BLOCKS.TORCH) {
+            // Needs ANY solid adjacent block
+            let hasSupport = false;
+            const dirs = [[0,-1,0], [0,1,0], [1,0,0], [-1,0,0], [0,0,1], [0,0,-1]];
+            for (let d of dirs) {
+                const adj = this.getBlock(x + d[0], y + d[1], z + d[2]);
+                const p = window.getBlockProperties(adj);
+                if (p && p.solid) { hasSupport = true; break; }
+            }
+            if (!hasSupport) needsBreak = true;
+        }
+        else if (type === window.BLOCKS.LADDER) {
+            // Needs ANY solid adjacent block except top/bottom
+            let hasSupport = false;
+            const dirs = [[1,0,0], [-1,0,0], [0,0,1], [0,0,-1]];
+            for (let d of dirs) {
+                const adj = this.getBlock(x + d[0], y + d[1], z + d[2]);
+                const p = window.getBlockProperties(adj);
+                if (p && p.solid) { hasSupport = true; break; }
+            }
+            if (!hasSupport) needsBreak = true;
+        }
+
+        if (needsBreak) {
+            // Break the block and spawn item (setBlock triggers onBlockDestroyed which spawns the item)
+            this.setBlock(x, y, z, window.BLOCKS.AIR);
+        }
+    }
+
+    checkAdjacentSupports(wx, wy, wz) {
+        // Only run if we aren't already deep in a recursive update stack to prevent infinite loops just in case
+        this._updateDepth = (this._updateDepth || 0) + 1;
+        if (this._updateDepth > 10) {
+            this._updateDepth--;
+            return;
+        }
+
+        this.checkSupport(wx, wy + 1, wz);
+        this.checkSupport(wx, wy - 1, wz);
+        this.checkSupport(wx + 1, wy, wz);
+        this.checkSupport(wx - 1, wy, wz);
+        this.checkSupport(wx, wy, wz + 1);
+        this.checkSupport(wx, wy, wz - 1);
+
+        this._updateDepth--;
+    }
+
     setBlock(wx, wy, wz, type) {
         wx = Math.floor(wx); wy = Math.floor(wy); wz = Math.floor(wz);
         if (wy < 0 || wy >= CHUNK_HEIGHT) return;
@@ -681,6 +744,10 @@ export class World {
                 if (this.onDoorRemoved) this.onDoorRemoved(wx, wy, wz);
             } else if (oldType !== window.BLOCKS.DUNGEON_DOOR && type === window.BLOCKS.DUNGEON_DOOR) {
                 if (this.onDoorPlaced) this.onDoorPlaced(wx, wy, wz);
+            }
+
+            if (oldType !== type) {
+                this.checkAdjacentSupports(wx, wy, wz);
             }
 
             if (!this.chunksToBuild.includes(chunk)) {
@@ -1022,7 +1089,7 @@ export class World {
         return { hit: false };
     }
 
-    collide(position, velocity, entityWidth = 0.6, entityHeight = 1.8) {
+    collide(position, velocity, entityWidth = 0.6, entityHeight = 1.8, isSneaking = false) {
         // AABB vs Voxel Grid collision
         const hw = entityWidth / 2;
 
@@ -1055,6 +1122,18 @@ export class World {
             }
             return false;
         };
+
+        // Sneak edge detection
+        if (isSneaking && checkCollision(position.x, position.y - 0.1, position.z)) {
+            if (!checkCollision(targetX, position.y - 0.1, position.z)) {
+                velocity.x = 0;
+                targetX = position.x;
+            }
+            if (!checkCollision(targetX, position.y - 0.1, targetZ)) { // Use targetX because it might have been reset
+                velocity.z = 0;
+                targetZ = position.z;
+            }
+        }
 
         // Y-axis
         if (checkCollision(position.x, targetY, position.z)) {
