@@ -152,6 +152,7 @@ class Game {
         this.currentDimension = 'overworld'; // 'overworld' or 'nether'
         this.planetParams = generatePlanetParams(rawSeed);
         this.world = new World(this.engine.scene, this.atlas);
+        this.world.planetParams = this.planetParams;
 
         // Chest Management
         this.chestInventories = new Map();
@@ -1068,6 +1069,7 @@ class Game {
             
             this.viewModel.visible = false; // Don't render hands in minimap
             if (this.cloudSystem && this.cloudSystem.clouds) this.cloudSystem.clouds.visible = false; // Hide clouds
+            if (this.lighting && this.lighting.sunMesh) this.lighting.sunMesh.visible = false; // Hide sun
             
             // Optional: disable fog for minimap so we can see clearly
             const oldFog = this.engine.scene.fog;
@@ -1086,6 +1088,7 @@ class Game {
             this.engine.scene.fog = oldFog;
             this.viewModel.visible = true;
             if (this.cloudSystem && this.cloudSystem.clouds) this.cloudSystem.clouds.visible = true; // Restore clouds
+            if (this.lighting && this.lighting.sunMesh) this.lighting.sunMesh.visible = true; // Restore sun
             if (this.engine.scene.fog) {
                 this.engine.scene.fog.density = this.engine.scene.fog.baseDensity;
             }
@@ -1187,6 +1190,7 @@ Chunks: ${this.world.chunks.size} | Mobs: ${this.entityManager.mobs.length} | Re
                 this.currentSeed = Math.floor(Math.random() * 1000000);
             }
             this.planetParams = generatePlanetParams(this.currentSeed);
+            this.world.planetParams = this.planetParams;
             this.currentDimension = warpToNether ? 'nether' : 'overworld';
 
             // Clear World

@@ -82,9 +82,9 @@ export function getBiomeParams(wx, wz, params) {
     const warpZ = noise2D(wz * 0.01, wx * 0.01) * 30;
     
     // Scaled down frequencies to make biomes larger and more expansive
-    const temp = (tempNoise((wx + warpX) * 0.00002, (wz + warpZ) * 0.00002) + 1) / 2;
-    const moist = (moistNoise((wx + warpX) * 0.00002, (wz + warpZ) * 0.00002) + 1) / 2;
-    const subNoise = (noise2D((wx + warpX) * 0.0001, (wz + warpZ) * 0.0001) + 1) / 2;
+    const temp = (tempNoise((wx + warpX) * 0.0005, (wz + warpZ) * 0.0005) + 1) / 2;
+    const moist = (moistNoise((wx + warpX) * 0.0005, (wz + warpZ) * 0.0005) + 1) / 2;
+    const subNoise = (noise2D((wx + warpX) * 0.002, (wz + warpZ) * 0.002) + 1) / 2;
 
     const isHot = temp > 0.6;
     const isCold = temp < 0.4;
